@@ -1,4 +1,4 @@
-package com.example.mystikesgs_dosen
+package com.app.mystikesgs_dosen
 
 import io.flutter.embedding.android.FlutterActivity
 

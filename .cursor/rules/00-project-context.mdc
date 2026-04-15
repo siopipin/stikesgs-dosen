@@ -1,0 +1,22 @@
+---
+description: Global context for RuangDosen mobile project
+alwaysApply: true
+---
+
+# RuangDosen Project Context
+
+- Gunakan `documentation/documentation.md` sebagai acuan utama implementasi aplikasi mobile dosen.
+- Gunakan `documentation/dosen.md` sebagai sumber kebenaran kontrak API.
+- Prioritas platform: Android.
+- Stack UI wajib: Flutter + Material 3 (light theme only).
+- Navigasi utama wajib 4 tab: `Jadwal`, `Presensi`, `Penilaian`, `Bimbingan`.
+- Tab default setelah login: `Presensi`, berisi dashboard ringkas dan informasi cepat.
+- Setiap perubahan UI harus mengikuti design token, spesifikasi screen, dan checklist UAT pada dokumentasi.
+- Branding asset wajib konsisten: font utama `Roboto` dari `assets/fonts/`, logo aplikasi `assets/images/logo.png`.
+- Untuk endpoint protected, selalu gunakan `Authorization: Bearer <token>`.
+- Gunakan konfigurasi global endpoint dari `global_config.dart` (`api`, `apiDosen`, `fotoDosen`, dst), jangan hardcode URL.
+- Terapkan alur sesi: rehydrate via `GET auth/me` saat app start, hapus sesi dan kembali ke login jika `401/403`.
+- Rule bisnis wajib dipatuhi: presensi auto-close 20 menit, tanpa validasi GPS, dan pembatasan input nilai koordinator `DSN`.
+- Perubahan yang memengaruhi perilaku API/UI wajib menjaga kompatibilitas mundur jika memungkinkan.
+- Sebelum finalisasi fitur, pastikan perubahan tetap lolos checklist implementasi dan UAT minimum di dokumentasi.
+- Jika requirement baru bertentangan dengan dokumentasi, minta konfirmasi user sebelum implementasi.

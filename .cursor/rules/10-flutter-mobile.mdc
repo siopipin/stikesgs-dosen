@@ -1,0 +1,28 @@
+---
+description: Flutter mobile implementation standards for RuangDosen
+globs: lib/**/*.dart
+alwaysApply: false
+---
+
+# Flutter Mobile Standards
+
+- Ikuti arsitektur folder per fitur seperti pada `documentation/documentation.md`.
+- Pisahkan tanggung jawab: `screen` (UI), `provider` (state), `service` (API), `model` (data).
+- Jangan lakukan request API langsung dari `screen`; panggil melalui provider/service.
+- Gunakan URL dan konstanta dari `global_config.dart`, hindari hardcode endpoint.
+- Gunakan font family `Roboto` yang diregister dari `assets/fonts/` sebagai font utama aplikasi.
+- Gunakan logo resmi `assets/images/logo.png` untuk kebutuhan branding screen sesuai dokumentasi.
+- Semua asset wajib diregister di `pubspec.yaml`; jika asset gagal load, tampilkan fallback UI yang aman (tanpa crash).
+- Wajib dukung lifecycle sesi: cek token lokal, rehydrate `auth/me`, dan force logout saat token invalid (`401/403`).
+- Terapkan state UI lengkap di screen: `loading`, `empty`, `error`, `success`.
+- Terapkan guard anti double submit untuk aksi kritikal (`presensi/start`, `presensi/end`, `nilai/update`, CRUD bimbingan).
+- Validasi input minimum sebelum hit API:
+  - login: `nidn` dan `password` wajib
+  - ubah password: `password_lama` dan `password_baru` wajib
+  - upload foto: hanya jpg/jpeg/png dan batas ukuran sesuai dokumentasi
+- Terapkan aksesibilitas Android: `Semantics`, kontras teks memadai, minimum tap target `48x48`.
+- Pertahankan konsistensi komponen Material 3 dan design token yang sudah ditetapkan.
+- Anggap request sukses jika status `200` atau `201`; map error sesuai standar dokumentasi.
+- Presensi wajib menampilkan status sesi (`OPEN`, `CLOSED`, `AUTO-CLOSED`) dan disable koreksi saat auto-close.
+- Gunakan key `shared_preferences` secara konsisten mengikuti dokumentasi (`sp_token_dosen`, `sp_login_dosen`, `sp_profile_dosen_json`).
+- Untuk setiap perubahan fitur utama, pastikan skenario UAT terkait di `documentation/documentation.md` tetap terpenuhi.
