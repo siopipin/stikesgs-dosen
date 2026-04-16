@@ -61,6 +61,22 @@ class ApiClient {
     return _decodeResponse(response);
   }
 
+  Future<Map<String, dynamic>> delete(
+    String path, {
+    Map<String, dynamic>? body,
+    bool authRequired = true,
+  }) async {
+    final uri = Uri.parse('${AppConfig.apiDosen}$path');
+    final response = await _client
+        .delete(
+          uri,
+          headers: await _headers(authRequired: authRequired),
+          body: body == null ? null : jsonEncode(body),
+        )
+        .timeout(const Duration(seconds: 20));
+    return _decodeResponse(response);
+  }
+
   Future<Map<String, dynamic>> putMultipart(
     String path, {
     required String fileField,
@@ -119,7 +135,9 @@ class ApiClient {
       }
     }
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
+    if (response.statusCode == 200 ||
+        response.statusCode == 201 ||
+        response.statusCode == 204) {
       return jsonBody;
     }
 

@@ -9,6 +9,8 @@ import 'features/auth/provider/session_provider.dart';
 import 'features/auth/screen/login_screen.dart';
 import 'features/auth/screen/splash_screen.dart';
 import 'features/auth/service/auth_service.dart';
+import 'features/bimbingan/provider/bimbingan_provider.dart';
+import 'features/bimbingan/service/bimbingan_service.dart';
 import 'features/dashboard/provider/home_dashboard_provider.dart';
 import 'features/dashboard/service/dashboard_service.dart';
 import 'features/home/screen/home_shell_screen.dart';
@@ -35,6 +37,7 @@ class MyApp extends StatelessWidget {
     final apiClient = ApiClient(prefs: prefs);
     final authService = AuthService(apiClient);
     final dashboardService = DashboardService(apiClient);
+    final bimbinganService = BimbinganService(apiClient);
     final penilaianService = PenilaianService(apiClient);
     final presensiService = PresensiService(apiClient);
     final profilService = ProfilService(apiClient);
@@ -56,6 +59,9 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => PenilaianProvider(penilaianService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => BimbinganProvider(bimbinganService),
         ),
         ChangeNotifierProvider(
           create: (_) => ProfilProvider(profilService),

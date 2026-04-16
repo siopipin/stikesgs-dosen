@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/global_config.dart';
+import '../../bimbingan/screen/bimbingan_screen.dart';
 import '../../dashboard/screen/home_dashboard_screen.dart';
 import '../../jadwal/screen/jadwal_screen.dart';
 import '../../penilaian/screen/penilaian_screen.dart';
@@ -43,11 +43,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
           const JadwalScreen(),
           const PresensiScreen(),
           const PenilaianScreen(),
-          _SectionPlaceholder(
-            title: 'Bimbingan',
-            description: 'Daftar mahasiswa PA dan log bimbingan akademik.',
-            icon: Icons.forum_rounded,
-          ),
+          const BimbinganScreen(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -80,60 +76,6 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
             label: 'Bimbingan',
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SectionPlaceholder extends StatelessWidget {
-  const _SectionPlaceholder({
-    required this.title,
-    required this.description,
-    required this.icon,
-  });
-
-  final String title;
-  final String description;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final isProduction = !AppConfig.isDevelopment;
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Card(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  icon,
-                  size: 48,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleLarge,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  description,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  isProduction ? 'Production' : 'Development',
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
