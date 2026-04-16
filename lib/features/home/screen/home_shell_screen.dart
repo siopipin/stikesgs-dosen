@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/global_config.dart';
 import '../../dashboard/screen/home_dashboard_screen.dart';
 import '../../jadwal/screen/jadwal_screen.dart';
+import '../../penilaian/screen/penilaian_screen.dart';
 import '../../presensi/screen/presensi_screen.dart';
 import '../../profil/screen/profil_screen.dart';
 
@@ -41,11 +42,7 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
           ),
           const JadwalScreen(),
           const PresensiScreen(),
-          _SectionPlaceholder(
-            title: 'Penilaian',
-            description: 'Input dan manajemen nilai mahasiswa.',
-            icon: Icons.grading_rounded,
-          ),
+          const PenilaianScreen(),
           _SectionPlaceholder(
             title: 'Bimbingan',
             description: 'Daftar mahasiswa PA dan log bimbingan akademik.',
