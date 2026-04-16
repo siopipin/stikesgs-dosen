@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../dashboard/model/teaching_schedule_item.dart';
 import '../../dashboard/provider/home_dashboard_provider.dart';
 
 class JadwalScreen extends StatefulWidget {
@@ -28,37 +29,44 @@ class _JadwalScreenState extends State<JadwalScreen> {
       builder: (context, provider, _) {
         final schedules = _todayOnly
             ? provider.schedules
-                .where(
-                  (item) => item.namaHari.toLowerCase() ==
-                      _dayName(DateTime.now().weekday).toLowerCase(),
-                )
-                .toList()
+                  .where(
+                    (item) =>
+                        item.namaHari.toLowerCase() ==
+                        _dayName(DateTime.now().weekday).toLowerCase(),
+                  )
+                  .toList()
             : provider.schedules;
 
         return Scaffold(
           appBar: AppBar(
             title: const Text('Jadwal Mengajar'),
+            actions: [
+              IconButton(
+                onPressed: provider.isLoading ? null : provider.refresh,
+                tooltip: 'Refresh jadwal',
+                icon: const Icon(Icons.refresh_rounded),
+              ),
+            ],
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(58),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                child: _JadwalFilterBar(
+                  todayOnly: _todayOnly,
+                  onChanged: (value) => setState(() => _todayOnly = value),
+                ),
+              ),
+            ),
           ),
           body: RefreshIndicator(
             onRefresh: provider.refresh,
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                SegmentedButton<bool>(
-                  segments: const [
-                    ButtonSegment<bool>(
-                      value: true,
-                      label: Text('Hari Ini'),
-                    ),
-                    ButtonSegment<bool>(
-                      value: false,
-                      label: Text('Semua'),
-                    ),
-                  ],
-                  selected: <bool>{_todayOnly},
-                  onSelectionChanged: (selection) {
-                    setState(() => _todayOnly = selection.first);
-                  },
+                _ScheduleSummary(
+                  todayOnly: _todayOnly,
+                  totalFiltered: schedules.length,
+                  todayName: _dayName(DateTime.now().weekday),
                 ),
                 const SizedBox(height: 12),
                 if (provider.isLoading && provider.schedules.isEmpty)
@@ -68,7 +76,8 @@ class _JadwalScreenState extends State<JadwalScreen> {
                       child: CircularProgressIndicator(),
                     ),
                   )
-                else if (provider.errorMessage != null && provider.schedules.isEmpty)
+                else if (provider.errorMessage != null &&
+                    provider.schedules.isEmpty)
                   _ErrorState(
                     message: provider.errorMessage!,
                     onRetry: provider.refresh,
@@ -76,20 +85,7 @@ class _JadwalScreenState extends State<JadwalScreen> {
                 else if (schedules.isEmpty)
                   const _EmptyState()
                 else
-                  ...schedules.map(
-                    (item) => Card(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          child: Text(item.sks.toString()),
-                        ),
-                        title: Text(item.namaMk),
-                        subtitle: Text(
-                          '${item.namaHari}, ${item.jamMulai}-${item.jamSelesai} • ${item.ruang}',
-                        ),
-                      ),
-                    ),
-                  ),
+                  ...schedules.map((item) => _JadwalCard(item: item)),
               ],
             ),
           ),
@@ -145,11 +141,137 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({
-    required this.message,
-    required this.onRetry,
+class _ScheduleSummary extends StatelessWidget {
+  const _ScheduleSummary({
+    required this.todayOnly,
+    required this.totalFiltered,
+    required this.todayName,
   });
+
+  final bool todayOnly;
+  final int totalFiltered;
+  final String todayName;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final title = todayOnly ? 'Jadwal $todayName' : 'Semua Jadwal';
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(11),
+                color: scheme.primaryContainer,
+              ),
+              child: Icon(Icons.calendar_month_rounded, color: scheme.primary),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$totalFiltered kelas',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _JadwalCard extends StatelessWidget {
+  const _JadwalCard({required this.item});
+
+  final TeachingScheduleItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      label:
+          'Jadwal ${item.namaMk}, hari ${item.namaHari}, jam ${item.jamMulai} sampai ${item.jamSelesai}',
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          color: scheme.surface,
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: scheme.primaryContainer,
+              ),
+              child: Center(
+                child: Text(
+                  '${item.sks}',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.namaMk,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${item.namaHari}, ${item.jamMulai}-${item.jamSelesai}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    item.ruang,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
 
   final String message;
   final Future<void> Function() onRetry;
@@ -168,11 +290,108 @@ class _ErrorState extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 10),
-          ElevatedButton(
-            onPressed: onRetry,
-            child: const Text('Coba Lagi'),
+          ElevatedButton(onPressed: onRetry, child: const Text('Coba Lagi')),
+        ],
+      ),
+    );
+  }
+}
+
+class _JadwalFilterBar extends StatelessWidget {
+  const _JadwalFilterBar({
+    required this.todayOnly,
+    required this.onChanged,
+  });
+
+  final bool todayOnly;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _FilterToggleButton(
+              label: 'Hari Ini',
+              icon: Icons.today_rounded,
+              isSelected: todayOnly,
+              onTap: () => onChanged(true),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _FilterToggleButton(
+              label: 'Semua',
+              icon: Icons.view_list_rounded,
+              isSelected: !todayOnly,
+              onTap: () => onChanged(false),
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FilterToggleButton extends StatelessWidget {
+  const _FilterToggleButton({
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final selectedBg = scheme.primary.withValues(alpha: 0.14);
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: 'Filter jadwal $label',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          height: 42,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: isSelected ? selectedBg : Colors.transparent,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
