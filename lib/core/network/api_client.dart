@@ -78,9 +78,7 @@ class ApiClient {
   }
 
   Future<void> clearSession() async {
-    await _prefs.remove(AppStorageKeys.tokenDosen);
-    await _prefs.remove(AppStorageKeys.loginDosen);
-    await _prefs.remove(AppStorageKeys.profileDosenJson);
+    await _prefs.clearAll();
   }
 
   Future<Map<String, String>> _headers({required bool authRequired}) async {

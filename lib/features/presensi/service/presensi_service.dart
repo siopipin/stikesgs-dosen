@@ -86,18 +86,23 @@ class PresensiService {
   Future<void> updateAttendance({
     required int presensiId,
     required PresensiAttendanceItem item,
-    required bool isPresent,
+    required String statusCode,
   }) async {
+    final normalizedStatus = statusCode.trim().toUpperCase();
     final body = <String, dynamic>{
       'presensi_id': presensiId,
-      'status_hadir': isPresent ? 1 : 0,
+      'jenis_presensi_id': normalizedStatus,
+      // Backward compatibility untuk payload lama.
+      'status_hadir': normalizedStatus == 'H' ? 1 : 0,
     };
 
     if (item.id.isNotEmpty) {
+      body['presensi_mhsw_id'] = item.id;
       body['krs_id'] = item.id;
     }
     if (item.studentId.isNotEmpty) {
       body['mhsw_id'] = item.studentId;
+      body['npm'] = item.studentId;
     }
 
     await _apiClient.put(

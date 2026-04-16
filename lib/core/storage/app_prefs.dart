@@ -15,4 +15,6 @@ class AppPrefs {
   Future<bool> setString(String key, String value) => _prefs.setString(key, value);
 
   Future<bool> remove(String key) => _prefs.remove(key);
+
+  Future<bool> clearAll() => _prefs.clear();
 }

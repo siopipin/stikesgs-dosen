@@ -446,7 +446,7 @@ class _AttendanceSection extends StatelessWidget {
                   onChanged: (value) async {
                     final ok = await provider.updateAttendance(
                       item: item,
-                      isPresent: value,
+                      statusCode: value,
                     );
                     if (!context.mounted || ok) return;
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -475,20 +475,82 @@ class _AttendanceTile extends StatelessWidget {
 
   final PresensiAttendanceItem item;
   final bool enabled;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return SwitchListTile(
-      value: item.isPresent,
-      onChanged: enabled ? onChanged : null,
+    final current = item.statusCode.toUpperCase();
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
       title: Text(item.studentName),
       subtitle: Text(item.studentId.isEmpty ? '-' : item.studentId),
-      secondary: Icon(
-        item.isPresent ? Icons.check_circle_rounded : Icons.cancel_rounded,
-        color: item.isPresent ? Colors.green : Colors.redAccent,
+      trailing: Wrap(
+        spacing: 6,
+        children: ['H', 'M', 'I', 'S']
+            .map(
+              (status) => _AttendanceStatusButton(
+                status: status,
+                current: current,
+                enabled: enabled,
+                onPressed: () => onChanged(status),
+              ),
+            )
+            .toList(),
       ),
     );
+  }
+}
+
+class _AttendanceStatusButton extends StatelessWidget {
+  const _AttendanceStatusButton({
+    required this.status,
+    this.current = '',
+    this.enabled = true,
+    this.onPressed,
+  });
+
+  final String status;
+  final String current;
+  final bool enabled;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = current == status;
+    final scheme = Theme.of(context).colorScheme;
+    final Color borderColor = _colorForStatus(status, scheme);
+
+    return OutlinedButton(
+      onPressed: enabled ? onPressed : null,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(40, 34),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        side: BorderSide(color: selected ? borderColor : scheme.outlineVariant),
+        backgroundColor: selected ? borderColor.withValues(alpha: 0.14) : null,
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          color: selected ? borderColor : scheme.onSurface,
+        ),
+      ),
+    );
+  }
+
+  Color _colorForStatus(String value, ColorScheme scheme) {
+    switch (value) {
+      case 'H':
+        return Colors.green;
+      case 'M':
+        return scheme.error;
+      case 'I':
+        return Colors.blue;
+      case 'S':
+        return Colors.orange;
+      default:
+        return scheme.primary;
+    }
   }
 }
 

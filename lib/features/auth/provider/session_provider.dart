@@ -138,4 +138,19 @@ class SessionProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> logout() async {
+    _isSubmitting = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _apiClient.clearSession();
+    } finally {
+      _profile = null;
+      _isAuthenticated = false;
+      _isSubmitting = false;
+      notifyListeners();
+    }
+  }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/global_config.dart';
+import '../../auth/provider/session_provider.dart';
 import '../provider/profil_provider.dart';
 
 class ProfilScreen extends StatefulWidget {
@@ -39,6 +40,9 @@ class _ProfilScreenState extends State<ProfilScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isSessionSubmitting = context.select<SessionProvider, bool>(
+      (session) => session.isSubmitting,
+    );
     return Consumer<ProfilProvider>(
       builder: (context, provider, _) {
         final profil = provider.profil;
@@ -58,6 +62,13 @@ class _ProfilScreenState extends State<ProfilScreen> {
               IconButton(
                 onPressed: provider.isSubmitting ? null : provider.loadProfil,
                 icon: const Icon(Icons.refresh_rounded),
+              ),
+              IconButton(
+                onPressed: provider.isSubmitting || isSessionSubmitting
+                    ? null
+                    : () => _onExitPressed(context),
+                tooltip: 'Exit',
+                icon: const Icon(Icons.logout_rounded),
               ),
             ],
           ),
@@ -286,6 +297,40 @@ class _ProfilScreenState extends State<ProfilScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
+  }
+
+  Future<void> _onExitPressed(BuildContext context) async {
+    final confirmed = await _confirmExitDialog(context);
+    if (!confirmed || !context.mounted) return;
+
+    await context.read<SessionProvider>().logout();
+    if (!context.mounted) return;
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  Future<bool> _confirmExitDialog(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Exit aplikasi?'),
+          content: const Text(
+            'Sesi login dan data lokal akan dihapus dari perangkat ini.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Exit'),
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
   }
 }
 

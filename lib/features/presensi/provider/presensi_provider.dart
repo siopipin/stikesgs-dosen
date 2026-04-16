@@ -210,7 +210,7 @@ class PresensiProvider extends ChangeNotifier {
 
   Future<bool> updateAttendance({
     required PresensiAttendanceItem item,
-    required bool isPresent,
+    required String statusCode,
   }) async {
     final currentSession = _meetingSession;
     if (currentSession == null || !currentSession.canEditAttendance) return false;
@@ -220,15 +220,16 @@ class PresensiProvider extends ChangeNotifier {
     );
     if (index == -1) return false;
 
+    final normalizedStatus = statusCode.trim().toUpperCase();
     final oldValue = _attendance[index];
-    _attendance[index] = oldValue.copyWith(isPresent: isPresent);
+    _attendance[index] = oldValue.copyWith(statusCode: normalizedStatus);
     notifyListeners();
 
     try {
       await _service.updateAttendance(
         presensiId: currentSession.presensiId,
         item: item,
-        isPresent: isPresent,
+        statusCode: normalizedStatus,
       );
       return true;
     } on ApiException catch (error) {
