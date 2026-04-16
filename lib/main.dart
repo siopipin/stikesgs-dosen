@@ -69,9 +69,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => NotifikasiProvider(notifikasiService),
         ),
-        ChangeNotifierProvider(
-          create: (_) => ProfilProvider(profilService),
-        ),
+        ChangeNotifierProvider(create: (_) => ProfilProvider(profilService)),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

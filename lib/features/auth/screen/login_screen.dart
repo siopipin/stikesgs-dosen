@@ -30,9 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (nidn.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('NIDN dan password wajib diisi.'),
-        ),
+        const SnackBar(content: Text('NIDN dan password wajib diisi.')),
       );
       return;
     }
@@ -44,10 +42,11 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (!success && mounted) {
-      final message = provider.errorMessage ?? 'Login gagal. Silakan coba lagi.';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      final message =
+          provider.errorMessage ?? 'Login gagal. Silakan coba lagi.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -111,14 +110,18 @@ class _LoginScreenState extends State<LoginScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: Divider(color: theme.colorScheme.outline.withValues(alpha: 0.7)),
+                    child: Divider(
+                      color: theme.colorScheme.outline.withValues(alpha: 0.7),
+                    ),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Text('Atau', style: theme.textTheme.bodyMedium),
                   ),
                   Expanded(
-                    child: Divider(color: theme.colorScheme.outline.withValues(alpha: 0.7)),
+                    child: Divider(
+                      color: theme.colorScheme.outline.withValues(alpha: 0.7),
+                    ),
                   ),
                 ],
               ),
