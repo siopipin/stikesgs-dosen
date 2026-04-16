@@ -1,0 +1,526 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+
+import '../../dashboard/model/teaching_schedule_item.dart';
+import '../model/presensi_attendance_item.dart';
+import '../provider/presensi_provider.dart';
+
+class PresensiScreen extends StatefulWidget {
+  const PresensiScreen({super.key});
+
+  @override
+  State<PresensiScreen> createState() => _PresensiScreenState();
+}
+
+class _PresensiScreenState extends State<PresensiScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<PresensiProvider>().ensureLoaded();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<PresensiProvider>(
+      builder: (context, provider, _) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Presensi'),
+            actions: [
+              IconButton(
+                onPressed: provider.isActionLoading ? null : provider.refreshAll,
+                icon: const Icon(Icons.refresh_rounded),
+              ),
+            ],
+          ),
+          body: RefreshIndicator(
+            onRefresh: provider.refreshAll,
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _ScheduleSection(provider: provider),
+                const SizedBox(height: 12),
+                _SessionSection(provider: provider),
+                const SizedBox(height: 12),
+                _AttendanceSection(provider: provider),
+                if (provider.errorMessage != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    provider.errorMessage!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ScheduleSection extends StatelessWidget {
+  const _ScheduleSection({required this.provider});
+
+  final PresensiProvider provider;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Pilih Jadwal', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 10),
+            if (provider.isLoading && provider.schedules.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (provider.schedules.isEmpty)
+              const Text('Belum ada jadwal mengajar.')
+            else
+              DropdownButtonFormField<int>(
+                isExpanded: true,
+                value: provider.selectedSchedule?.jadwalId,
+                decoration: const InputDecoration(
+                  labelText: 'Jadwal',
+                ),
+                items: provider.schedules
+                    .map(
+                      (item) => DropdownMenuItem<int>(
+                        value: item.jadwalId,
+                        child: Text(
+                          _scheduleLabel(item),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: provider.isActionLoading
+                    ? null
+                    : (value) {
+                        if (value == null) return;
+                        final selected = provider.schedules.firstWhere(
+                          (e) => e.jadwalId == value,
+                        );
+                        provider.selectSchedule(selected);
+                      },
+              ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    isExpanded: true,
+                    value: provider.pertemuan,
+                    decoration: const InputDecoration(
+                      labelText: 'Pertemuan',
+                    ),
+                    items: List<int>.generate(16, (index) => index + 1)
+                        .map(
+                          (value) => DropdownMenuItem<int>(
+                            value: value,
+                            child: Text(value.toString()),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: provider.isActionLoading
+                        ? null
+                        : (value) {
+                            if (value != null) {
+                              provider.setPertemuan(value);
+                            }
+                          },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: provider.isActionLoading ? null : provider.checkActiveSession,
+                    icon: const Icon(Icons.search_rounded),
+                    label: const Text('Cek Sesi'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _scheduleLabel(TeachingScheduleItem item) {
+    return '${item.namaHari} ${item.jamMulai}-${item.jamSelesai} • ${item.namaMk}';
+  }
+}
+
+void _openFullQrDialog(BuildContext context, String data) {
+  final shortest = MediaQuery.sizeOf(context).shortestSide;
+  final qrSize = (shortest * 0.82).clamp(240.0, 380.0);
+
+  showDialog<void>(
+    context: context,
+    barrierDismissible: true,
+    builder: (dialogContext) {
+      final theme = Theme.of(dialogContext);
+      return Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Scan untuk presensi',
+                  style: theme.textTheme.titleLarge,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Pastikan layar cukup terang agar kamera mahasiswa dapat membaca QR.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                ColoredBox(
+                  color: Colors.white,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: QrImageView(
+                      data: data,
+                      version: QrVersions.auto,
+                      size: qrSize,
+                      backgroundColor: Colors.white,
+                      eyeStyle: const QrEyeStyle(
+                        eyeShape: QrEyeShape.square,
+                        color: Color(0xFF000000),
+                      ),
+                      dataModuleStyle: const QrDataModuleStyle(
+                        dataModuleShape: QrDataModuleShape.square,
+                        color: Color(0xFF000000),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Tutup'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _PresensiQrPreview extends StatelessWidget {
+  const _PresensiQrPreview({required this.data});
+
+  final String data;
+
+  @override
+  Widget build(BuildContext context) {
+    final outline = Theme.of(context).colorScheme.outlineVariant;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: outline),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: QrImageView(
+          data: data,
+          version: QrVersions.auto,
+          size: 168,
+          backgroundColor: Colors.white,
+          eyeStyle: const QrEyeStyle(
+            eyeShape: QrEyeShape.square,
+            color: Color(0xFF000000),
+          ),
+          dataModuleStyle: const QrDataModuleStyle(
+            dataModuleShape: QrDataModuleShape.square,
+            color: Color(0xFF000000),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SessionSection extends StatelessWidget {
+  const _SessionSection({required this.provider});
+
+  final PresensiProvider provider;
+
+  @override
+  Widget build(BuildContext context) {
+    final open = provider.openSession;
+    final canStart = open == null &&
+        provider.selectedSchedule != null &&
+        !provider.isActionLoading;
+    final canEnd = open != null &&
+        open.status.toUpperCase() == 'OPEN' &&
+        !provider.isActionLoading;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Sesi Presensi', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            if (open == null)
+              Text(
+                'Belum ada sesi aktif. Mulai sesi untuk membuat QR token presensi.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              )
+            else
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _StatusChip(status: open.status),
+                  const SizedBox(height: 12),
+                  if (open.status.toUpperCase() == 'OPEN' &&
+                      open.qrSessionToken.trim().isNotEmpty) ...[
+                    Center(
+                      child: _PresensiQrPreview(data: open.qrSessionToken),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: provider.isActionLoading
+                          ? null
+                          : () => _openFullQrDialog(context, open.qrSessionToken),
+                      icon: const Icon(Icons.fullscreen_rounded),
+                      label: const Text('Tampilkan QR penuh'),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  SelectableText(
+                    'Token: ${open.qrSessionToken}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    open.canEditAttendance
+                        ? 'Koreksi kehadiran diizinkan.'
+                        : 'Koreksi kehadiran tidak diizinkan (sesi sudah ditutup).',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Sesi akan auto-close setelah 20 menit sesuai aturan backend.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: canStart
+                        ? () async {
+                            final ok = await provider.startSession();
+                            if (!context.mounted) return;
+                            _showSnack(
+                              context,
+                              ok
+                                  ? 'Sesi presensi berhasil dimulai.'
+                                  : (provider.errorMessage ??
+                                      'Gagal memulai sesi presensi.'),
+                            );
+                          }
+                        : null,
+                    child: const Text('Start Sesi'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: canEnd
+                        ? () async {
+                            final ok = await provider.endSession();
+                            if (!context.mounted) return;
+                            _showSnack(
+                              context,
+                              ok
+                                  ? 'Sesi presensi ditutup.'
+                                  : (provider.errorMessage ??
+                                      'Gagal menutup sesi presensi.'),
+                            );
+                          }
+                        : null,
+                    child: const Text('End Sesi'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSnack(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+}
+
+class _AttendanceSection extends StatelessWidget {
+  const _AttendanceSection({required this.provider});
+
+  final PresensiProvider provider;
+
+  @override
+  Widget build(BuildContext context) {
+    final meeting = provider.meetingSession;
+    final hasPresensiRow = meeting != null && meeting.presensiId != 0;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Text(
+                  'Rekap Kehadiran',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: provider.isActionLoading || !hasPresensiRow
+                      ? null
+                      : provider.loadAttendance,
+                  icon: const Icon(Icons.refresh_rounded),
+                  tooltip: 'Refresh kehadiran',
+                ),
+              ],
+            ),
+            if (!hasPresensiRow)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Belum ada data presensi untuk jadwal dan pertemuan ini. '
+                  'Jika sudah pernah presensi, coba tombol Refresh di atas atau "Cek Sesi" untuk sinkron ulang.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              )
+            else if (provider.attendance.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Belum ada data kehadiran.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              )
+            else
+              ...provider.attendance.map(
+                (item) => _AttendanceTile(
+                  item: item,
+                  enabled: provider.canEditAttendance && !provider.isActionLoading,
+                  onChanged: (value) async {
+                    final ok = await provider.updateAttendance(
+                      item: item,
+                      isPresent: value,
+                    );
+                    if (!context.mounted || ok) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          provider.errorMessage ?? 'Gagal memperbarui kehadiran.',
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AttendanceTile extends StatelessWidget {
+  const _AttendanceTile({
+    required this.item,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final PresensiAttendanceItem item;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SwitchListTile(
+      value: item.isPresent,
+      onChanged: enabled ? onChanged : null,
+      title: Text(item.studentName),
+      subtitle: Text(item.studentId.isEmpty ? '-' : item.studentId),
+      secondary: Icon(
+        item.isPresent ? Icons.check_circle_rounded : Icons.cancel_rounded,
+        color: item.isPresent ? Colors.green : Colors.redAccent,
+      ),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final normalized = status.toUpperCase();
+    final Color color;
+    switch (normalized) {
+      case 'OPEN':
+        color = Colors.green;
+        break;
+      case 'AUTO-CLOSED':
+      case 'CLOSED':
+        color = Colors.orange;
+        break;
+      default:
+        color = Theme.of(context).colorScheme.primary;
+    }
+
+    return Chip(
+      label: Text(normalized),
+      backgroundColor: color.withValues(alpha: 0.15),
+      side: BorderSide(color: color),
+      labelStyle: TextStyle(
+        color: color,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+}

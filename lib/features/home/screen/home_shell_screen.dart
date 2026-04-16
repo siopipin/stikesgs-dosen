@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/global_config.dart';
 import '../../dashboard/screen/home_dashboard_screen.dart';
+import '../../jadwal/screen/jadwal_screen.dart';
+import '../../presensi/screen/presensi_screen.dart';
+import '../../profil/screen/profil_screen.dart';
 
 class HomeShellScreen extends StatefulWidget {
   const HomeShellScreen({super.key});
@@ -11,8 +14,20 @@ class HomeShellScreen extends StatefulWidget {
 }
 
 class _HomeShellScreenState extends State<HomeShellScreen> {
-  // Default tab: Presensi
-  int _currentIndex = 1;
+  // Default tab: Home
+  int _currentIndex = 0;
+
+  void _onTabSelected(int index) {
+    setState(() => _currentIndex = index);
+  }
+
+  void _openProfile() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const ProfilScreen(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,12 +35,12 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       body: IndexedStack(
         index: _currentIndex,
         children: [
-          _SectionPlaceholder(
-            title: 'Jadwal',
-            description: 'Halaman jadwal mengajar akan ditampilkan di sini.',
-            icon: Icons.calendar_month_rounded,
+          HomeDashboardScreen(
+            onNavigateTab: _onTabSelected,
+            onOpenProfile: _openProfile,
           ),
-          const HomeDashboardScreen(),
+          const JadwalScreen(),
+          const PresensiScreen(),
           _SectionPlaceholder(
             title: 'Penilaian',
             description: 'Input dan manajemen nilai mahasiswa.',
@@ -40,8 +55,13 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
-        onDestinationSelected: (index) => setState(() => _currentIndex = index),
+        onDestinationSelected: _onTabSelected,
         destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home_rounded),
+            label: 'Home',
+          ),
           NavigationDestination(
             icon: Icon(Icons.calendar_month_outlined),
             selectedIcon: Icon(Icons.calendar_month_rounded),

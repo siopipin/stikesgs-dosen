@@ -12,6 +12,10 @@ import 'features/auth/service/auth_service.dart';
 import 'features/dashboard/provider/home_dashboard_provider.dart';
 import 'features/dashboard/service/dashboard_service.dart';
 import 'features/home/screen/home_shell_screen.dart';
+import 'features/presensi/provider/presensi_provider.dart';
+import 'features/presensi/service/presensi_service.dart';
+import 'features/profil/provider/profil_provider.dart';
+import 'features/profil/service/profil_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +33,8 @@ class MyApp extends StatelessWidget {
     final apiClient = ApiClient(prefs: prefs);
     final authService = AuthService(apiClient);
     final dashboardService = DashboardService(apiClient);
+    final presensiService = PresensiService(apiClient);
+    final profilService = ProfilService(apiClient);
 
     return MultiProvider(
       providers: [
@@ -41,6 +47,12 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => HomeDashboardProvider(dashboardService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => PresensiProvider(presensiService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ProfilProvider(profilService),
         ),
       ],
       child: MaterialApp(

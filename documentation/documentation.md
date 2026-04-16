@@ -254,17 +254,19 @@ Format: `size / line-height / fontWeight`.
 
 ### 3A.3 Struktur Navigasi Utama
 
-Bottom navigation final terdiri dari 4 menu:
+Bottom navigation final terdiri dari 5 menu:
 
-1. `Jadwal`
-2. `Presensi`
-3. `Penilaian`
-4. `Bimbingan`
+1. `Home`
+2. `Jadwal`
+3. `Presensi`
+4. `Penilaian`
+5. `Bimbingan`
 
 Ketentuan:
 
-- `Presensi` menjadi tab default saat login sukses.
-- Tab `Presensi` menampilkan **dashboard ringkas + informasi cepat** di bagian atas, lalu daftar aksi presensi.
+- `Home` menjadi tab default saat login sukses.
+- Tab `Home` menampilkan **dashboard ringkas + informasi cepat**.
+- Tab `Presensi` fokus pada aksi presensi (sesi aktif, start/end, rekap, koreksi).
 - Semua tab menyimpan state scroll/tab saat berpindah menu (`IndexedStack` disarankan).
 
 ### 3A.4 Komponen Inti yang Wajib Konsisten
@@ -910,8 +912,8 @@ Standar tambahan ini disarankan agar implementasi mobile lebih stabil:
 - [ ] Integrasi Notifikasi (list, total, baca)
 - [ ] Integrasi Bimbingan PA (list + CRUD log)
 - [ ] Integrasi Profil (get/update/foto/password)
-- [ ] Implement bottom navigation 4 menu (`Jadwal`, `Presensi`, `Penilaian`, `Bimbingan`)
-- [ ] Implement quick info cards di tab `Presensi`
+- [ ] Implement bottom navigation 5 menu (`Home`, `Jadwal`, `Presensi`, `Penilaian`, `Bimbingan`)
+- [ ] Implement quick info cards di tab `Home`
 - [ ] Integrasi Firebase Messaging untuk push notifikasi (tahap berikutnya)
 - [ ] Tambahkan empty state, loading state, dan retry state
 - [ ] Tambahkan standar aksesibilitas (`Semantics`, kontras, tap target)
@@ -939,8 +941,8 @@ Standar tambahan ini disarankan agar implementasi mobile lebih stabil:
 12. Request create (`POST`) yang mengembalikan `201` tetap dianggap sukses oleh app.
 13. Upload foto gagal (file terlalu besar/format salah) menampilkan pesan validasi yang jelas.
 14. Double tap tombol simpan/start tidak membuat data ganda.
-15. Bottom navigation 4 menu tampil konsisten di semua screen utama.
-16. Tab `Presensi` menampilkan informasi cepat (jadwal hari ini, SKS, PA, notifikasi).
+15. Bottom navigation 5 menu tampil konsisten di semua screen utama.
+16. Tab `Home` menampilkan informasi cepat (jadwal hari ini, SKS, PA, notifikasi).
 17. Seluruh state `loading/empty/error/success` muncul sesuai kondisi data.
 18. Pengujian TalkBack: label komponen penting terbaca dengan benar.
 19. Font `Roboto` tampil konsisten pada komponen utama sesuai tema aplikasi.

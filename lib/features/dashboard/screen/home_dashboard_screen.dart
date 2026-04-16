@@ -5,9 +5,17 @@ import '../../../core/constants/app_assets.dart';
 import '../model/announcement_item.dart';
 import '../model/teaching_schedule_item.dart';
 import '../provider/home_dashboard_provider.dart';
+import 'announcement_list_screen.dart';
 
 class HomeDashboardScreen extends StatefulWidget {
-  const HomeDashboardScreen({super.key});
+  const HomeDashboardScreen({
+    super.key,
+    required this.onNavigateTab,
+    required this.onOpenProfile,
+  });
+
+  final ValueChanged<int> onNavigateTab;
+  final VoidCallback onOpenProfile;
 
   @override
   State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
@@ -52,11 +60,15 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                     ? summary!.nama
                     : 'Dosen',
                 unreadCount: summary?.jumlahNotifAkademik ?? 0,
+                onOpenProfile: widget.onOpenProfile,
               ),
               const SizedBox(height: 12),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _TodayScheduleCard(schedule: todaySchedule),
+                child: _TodayScheduleCard(
+                  schedule: todaySchedule,
+                  onTap: () => widget.onNavigateTab(1),
+                ),
               ),
               const SizedBox(height: 12),
               Padding(
@@ -67,12 +79,22 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   jumlahPa: summary?.jumlahMhsBimbingan ?? 0,
                   jumlahPenilaian:
                       provider.schedules.isNotEmpty ? provider.schedules.length : 0,
+                  onSelectTab: widget.onNavigateTab,
                 ),
               ),
               const SizedBox(height: 14),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _AnnouncementPanel(items: announcements),
+                child: _AnnouncementPanel(
+                  items: announcements,
+                  onViewAll: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const AnnouncementListScreen(),
+                      ),
+                    );
+                  },
+                ),
               ),
             ],
           ),
@@ -119,10 +141,12 @@ class _DashboardHeader extends StatelessWidget {
   const _DashboardHeader({
     required this.lecturerName,
     required this.unreadCount,
+    required this.onOpenProfile,
   });
 
   final String lecturerName;
   final int unreadCount;
+  final VoidCallback onOpenProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -206,10 +230,14 @@ class _DashboardHeader extends StatelessWidget {
                 ],
               ),
               const SizedBox(width: 10),
-              const CircleAvatar(
-                radius: 18,
-                backgroundColor: Colors.white30,
-                child: Icon(Icons.person, color: Colors.white),
+              InkWell(
+                onTap: onOpenProfile,
+                borderRadius: BorderRadius.circular(30),
+                child: const CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.white30,
+                  child: Icon(Icons.person, color: Colors.white),
+                ),
               ),
             ],
           ),
@@ -241,54 +269,62 @@ class _DashboardHeader extends StatelessWidget {
 }
 
 class _TodayScheduleCard extends StatelessWidget {
-  const _TodayScheduleCard({required this.schedule});
+  const _TodayScheduleCard({
+    required this.schedule,
+    required this.onTap,
+  });
 
   final TeachingScheduleItem? schedule;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final hasData = schedule != null;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(12),
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.calendar_month_rounded,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
               ),
-              child: Icon(
-                Icons.calendar_month_rounded,
-                color: Theme.of(context).colorScheme.primary,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Jadwal Hari Ini',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      hasData
+                          ? '${schedule!.jamMulai} - ${schedule!.jamSelesai} | ${schedule!.namaMk} | ${schedule!.ruang}'
+                          : 'Belum ada jadwal hari ini.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Jadwal Hari Ini',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    hasData
-                        ? '${schedule!.jamMulai} - ${schedule!.jamSelesai} | ${schedule!.namaMk} | ${schedule!.ruang}'
-                        : 'Belum ada jadwal hari ini.',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
+              Icon(
+                Icons.chevron_right_rounded,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
-            ),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -301,12 +337,14 @@ class _QuickStatGrid extends StatelessWidget {
     required this.totalSks,
     required this.jumlahPa,
     required this.jumlahPenilaian,
+    required this.onSelectTab,
   });
 
   final int jadwalHariIni;
   final int totalSks;
   final int jumlahPa;
   final int jumlahPenilaian;
+  final ValueChanged<int> onSelectTab;
 
   @override
   Widget build(BuildContext context) {
@@ -316,24 +354,28 @@ class _QuickStatGrid extends StatelessWidget {
         value: '$jadwalHariIni',
         color: const Color(0xFF0B7D65),
         icon: Icons.calendar_today_rounded,
+        targetTabIndex: 1,
       ),
       _StatCardData(
         title: 'SKS\nDiampu',
         value: '$totalSks',
         color: const Color(0xFFDD8A00),
         icon: Icons.assignment_rounded,
+        targetTabIndex: 2,
       ),
       _StatCardData(
         title: 'Mahasiswa\nPA',
         value: '$jumlahPa',
         color: const Color(0xFF2A67C7),
         icon: Icons.groups_rounded,
+        targetTabIndex: 4,
       ),
       _StatCardData(
         title: 'Jadwal\nPenilaian',
         value: '$jumlahPenilaian',
         color: const Color(0xFFB8405E),
         icon: Icons.schedule_rounded,
+        targetTabIndex: 3,
       ),
     ];
 
@@ -347,49 +389,60 @@ class _QuickStatGrid extends StatelessWidget {
         mainAxisSpacing: 10,
         childAspectRatio: 2.35,
       ),
-      itemBuilder: (_, index) => _StatCard(item: items[index]),
+      itemBuilder: (_, index) => _StatCard(
+        item: items[index],
+        onTap: () => onSelectTab(items[index].targetTabIndex),
+      ),
     );
   }
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard({required this.item});
+  const _StatCard({
+    required this.item,
+    required this.onTap,
+  });
 
   final _StatCardData item;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: item.color,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Row(
-        children: [
-          Text(
-            item.value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 42,
-              fontWeight: FontWeight.w700,
-              height: 1,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              item.title,
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: item.color,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            Text(
+              item.value,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.w600,
-                height: 1.1,
+                fontSize: 42,
+                fontWeight: FontWeight.w700,
+                height: 1,
               ),
             ),
-          ),
-          Icon(item.icon, color: Colors.white70, size: 29),
-        ],
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                item.title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  height: 1.1,
+                ),
+              ),
+            ),
+            Icon(item.icon, color: Colors.white70, size: 29),
+          ],
+        ),
       ),
     );
   }
@@ -401,18 +454,24 @@ class _StatCardData {
     required this.value,
     required this.color,
     required this.icon,
+    required this.targetTabIndex,
   });
 
   final String title;
   final String value;
   final Color color;
   final IconData icon;
+  final int targetTabIndex;
 }
 
 class _AnnouncementPanel extends StatelessWidget {
-  const _AnnouncementPanel({required this.items});
+  const _AnnouncementPanel({
+    required this.items,
+    required this.onViewAll,
+  });
 
   final List<AnnouncementItem> items;
+  final VoidCallback onViewAll;
 
   @override
   Widget build(BuildContext context) {
@@ -482,7 +541,7 @@ class _AnnouncementPanel extends StatelessWidget {
               }),
             const SizedBox(height: 4),
             OutlinedButton(
-              onPressed: () {},
+              onPressed: onViewAll,
               child: const Text('Lihat Semua'),
             ),
           ],

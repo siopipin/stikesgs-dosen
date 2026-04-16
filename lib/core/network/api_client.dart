@@ -45,6 +45,38 @@ class ApiClient {
     return _decodeResponse(response);
   }
 
+  Future<Map<String, dynamic>> put(
+    String path, {
+    required Map<String, dynamic> body,
+    bool authRequired = true,
+  }) async {
+    final uri = Uri.parse('${AppConfig.apiDosen}$path');
+    final response = await _client
+        .put(
+          uri,
+          headers: await _headers(authRequired: authRequired),
+          body: jsonEncode(body),
+        )
+        .timeout(const Duration(seconds: 20));
+    return _decodeResponse(response);
+  }
+
+  Future<Map<String, dynamic>> putMultipart(
+    String path, {
+    required String fileField,
+    required String filePath,
+    bool authRequired = true,
+  }) async {
+    final uri = Uri.parse('${AppConfig.apiDosen}$path');
+    final request = http.MultipartRequest('PUT', uri);
+    request.headers.addAll(await _multipartHeaders(authRequired: authRequired));
+    request.files.add(await http.MultipartFile.fromPath(fileField, filePath));
+
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+    return _decodeResponse(response);
+  }
+
   Future<void> clearSession() async {
     await _prefs.remove(AppStorageKeys.tokenDosen);
     await _prefs.remove(AppStorageKeys.loginDosen);
@@ -56,6 +88,19 @@ class ApiClient {
       'Content-Type': 'application/json',
     };
 
+    if (authRequired) {
+      final token = _prefs.getString(AppStorageKeys.tokenDosen);
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+    }
+    return headers;
+  }
+
+  Future<Map<String, String>> _multipartHeaders({
+    required bool authRequired,
+  }) async {
+    final headers = <String, String>{};
     if (authRequired) {
       final token = _prefs.getString(AppStorageKeys.tokenDosen);
       if (token != null && token.isNotEmpty) {

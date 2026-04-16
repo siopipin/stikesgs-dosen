@@ -1,0 +1,261 @@
+import 'package:flutter/material.dart';
+
+import '../../../core/network/api_client.dart';
+import '../../dashboard/model/teaching_schedule_item.dart';
+import '../model/presensi_attendance_item.dart';
+import '../model/presensi_session.dart';
+import '../service/presensi_service.dart';
+
+class PresensiProvider extends ChangeNotifier {
+  PresensiProvider(this._service);
+
+  final PresensiService _service;
+
+  bool _isLoading = false;
+  bool _isActionLoading = false;
+  bool _initialized = false;
+  String? _errorMessage;
+  List<TeachingScheduleItem> _schedules = <TeachingScheduleItem>[];
+  TeachingScheduleItem? _selectedSchedule;
+  PresensiSession? _openSession;
+  PresensiSession? _meetingSession;
+  List<PresensiAttendanceItem> _attendance = <PresensiAttendanceItem>[];
+  int _pertemuan = 1;
+
+  bool get isLoading => _isLoading;
+  bool get isActionLoading => _isActionLoading;
+  String? get errorMessage => _errorMessage;
+  List<TeachingScheduleItem> get schedules => _schedules;
+  TeachingScheduleItem? get selectedSchedule => _selectedSchedule;
+
+  /// Sesi OPEN (token QR / tutup manual).
+  PresensiSession? get openSession => _openSession;
+
+  /// Konteks presensi untuk jadwal + pertemuan terpilih (bisa CLOSED), untuk daftar kehadiran.
+  PresensiSession? get meetingSession => _meetingSession;
+
+  List<PresensiAttendanceItem> get attendance => _attendance;
+  int get pertemuan => _pertemuan;
+  bool get canEditAttendance => _meetingSession?.canEditAttendance ?? false;
+
+  Future<void> ensureLoaded() async {
+    if (_initialized) return;
+    _initialized = true;
+    await refreshAll();
+  }
+
+  Future<void> refreshAll() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _schedules = await _service.getTeachingSchedule();
+      _selectedSchedule ??= _schedules.isNotEmpty ? _schedules.first : null;
+      await _syncPresensiContext(showBlockingSpinner: true);
+      await _loadAttendanceIfPossible();
+    } on ApiException catch (error) {
+      _errorMessage = error.message;
+    } catch (_) {
+      _errorMessage = 'Data presensi belum dapat dimuat.';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> selectSchedule(TeachingScheduleItem schedule) async {
+    _selectedSchedule = schedule;
+    _openSession = null;
+    _meetingSession = null;
+    _attendance = <PresensiAttendanceItem>[];
+    notifyListeners();
+    await _syncPresensiContext(showBlockingSpinner: true);
+    await _loadAttendanceIfPossible();
+  }
+
+  Future<void> setPertemuan(int value) async {
+    if (value < 1) return;
+    _pertemuan = value;
+    notifyListeners();
+    await _syncPresensiContext(showBlockingSpinner: false);
+    await _loadAttendanceIfPossible();
+  }
+
+  Future<void> checkActiveSession() async {
+    await _syncPresensiContext(showBlockingSpinner: true);
+    await _loadAttendanceIfPossible();
+  }
+
+  Future<void> _syncPresensiContext({required bool showBlockingSpinner}) async {
+    final schedule = _selectedSchedule;
+    if (schedule == null) {
+      _openSession = null;
+      _meetingSession = null;
+      notifyListeners();
+      return;
+    }
+
+    if (showBlockingSpinner) {
+      _isActionLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+    }
+
+    try {
+      final ctx = await _service.fetchAktifContext(
+        jadwalId: schedule.jadwalId,
+        pertemuan: _pertemuan,
+      );
+      _openSession = ctx.openSession;
+      _meetingSession = ctx.meetingSession;
+    } on ApiException catch (error) {
+      _errorMessage = error.message;
+    } catch (_) {
+      _errorMessage = 'Gagal memuat status presensi.';
+    } finally {
+      if (showBlockingSpinner) {
+        _isActionLoading = false;
+      }
+      notifyListeners();
+    }
+  }
+
+  Future<void> _loadAttendanceIfPossible() async {
+    final id = _meetingSession?.presensiId;
+    if (id == null || id == 0) {
+      _attendance = <PresensiAttendanceItem>[];
+      notifyListeners();
+      return;
+    }
+    await loadAttendance();
+  }
+
+  Future<bool> startSession() async {
+    final schedule = _selectedSchedule;
+    if (schedule == null) {
+      _errorMessage = 'Pilih jadwal terlebih dahulu.';
+      notifyListeners();
+      return false;
+    }
+
+    _isActionLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final started = await _service.startSession(
+        jadwalId: schedule.jadwalId,
+        pertemuan: _pertemuan,
+      );
+      _meetingSession = started;
+      _openSession = started;
+      await loadAttendance();
+      return true;
+    } on ApiException catch (error) {
+      _errorMessage = error.message;
+      return false;
+    } catch (_) {
+      _errorMessage = 'Gagal memulai sesi presensi.';
+      return false;
+    } finally {
+      _isActionLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> endSession() async {
+    final current = _openSession;
+    if (current == null) return false;
+
+    _isActionLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _service.endSession(presensiId: current.presensiId);
+      final closed = current.copyWithStatus('CLOSED');
+      _openSession = null;
+      if (_meetingSession?.presensiId == current.presensiId) {
+        _meetingSession = closed;
+      }
+      return true;
+    } on ApiException catch (error) {
+      _errorMessage = error.message;
+      return false;
+    } catch (_) {
+      _errorMessage = 'Gagal menutup sesi presensi.';
+      return false;
+    } finally {
+      _isActionLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadAttendance() async {
+    final id = _meetingSession?.presensiId;
+    if (id == null || id == 0) return;
+
+    try {
+      _attendance = await _service.getAttendance(presensiId: id);
+      notifyListeners();
+    } on ApiException catch (error) {
+      _errorMessage = error.message;
+      notifyListeners();
+    } catch (_) {
+      _errorMessage = 'Gagal memuat data kehadiran.';
+      notifyListeners();
+    }
+  }
+
+  Future<bool> updateAttendance({
+    required PresensiAttendanceItem item,
+    required bool isPresent,
+  }) async {
+    final currentSession = _meetingSession;
+    if (currentSession == null || !currentSession.canEditAttendance) return false;
+
+    final index = _attendance.indexWhere(
+      (element) => element.id == item.id && element.studentId == item.studentId,
+    );
+    if (index == -1) return false;
+
+    final oldValue = _attendance[index];
+    _attendance[index] = oldValue.copyWith(isPresent: isPresent);
+    notifyListeners();
+
+    try {
+      await _service.updateAttendance(
+        presensiId: currentSession.presensiId,
+        item: item,
+        isPresent: isPresent,
+      );
+      return true;
+    } on ApiException catch (error) {
+      _attendance[index] = oldValue;
+      _errorMessage = error.message;
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _attendance[index] = oldValue;
+      _errorMessage = 'Gagal memperbarui kehadiran.';
+      notifyListeners();
+      return false;
+    }
+  }
+}
+
+extension on PresensiSession {
+  PresensiSession copyWithStatus(String status) {
+    return PresensiSession(
+      presensiId: presensiId,
+      jadwalId: jadwalId,
+      dosenId: dosenId,
+      qrSessionToken: qrSessionToken,
+      status: status,
+      startedAt: startedAt,
+      raw: raw,
+      pertemuanKe: pertemuanKe,
+    );
+  }
+}

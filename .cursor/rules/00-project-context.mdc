@@ -9,8 +9,8 @@ alwaysApply: true
 - Gunakan `documentation/dosen.md` sebagai sumber kebenaran kontrak API.
 - Prioritas platform: Android.
 - Stack UI wajib: Flutter + Material 3 (light theme only).
-- Navigasi utama wajib 4 tab: `Jadwal`, `Presensi`, `Penilaian`, `Bimbingan`.
-- Tab default setelah login: `Presensi`, berisi dashboard ringkas dan informasi cepat.
+- Navigasi utama wajib 5 tab: `Home`, `Jadwal`, `Presensi`, `Penilaian`, `Bimbingan`.
+- Tab default setelah login: `Home`, berisi dashboard ringkas dan informasi cepat.
 - Setiap perubahan UI harus mengikuti design token, spesifikasi screen, dan checklist UAT pada dokumentasi.
 - Branding asset wajib konsisten: font utama `Roboto` dari `assets/fonts/`, logo aplikasi `assets/images/logo.png`.
 - Untuk endpoint protected, selalu gunakan `Authorization: Bearer <token>`.
