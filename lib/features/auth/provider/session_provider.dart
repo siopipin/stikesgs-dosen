@@ -54,22 +54,22 @@ class SessionProvider extends ChangeNotifier {
       _profile = me;
       _isAuthenticated = true;
     } on ApiException catch (error) {
-      final shouldClearSession =
-          error.statusCode == 401 ||
-          error.statusCode == 403 ||
-          error.statusCode == 500;
+      final shouldClearSession = error.statusCode == 401 || error.statusCode == 403;
 
       if (shouldClearSession) {
         await _apiClient.clearSession();
+        _isAuthenticated = false;
+        _profile = null;
+        _errorMessage = error.message;
+      } else {
+        _profile = _readCachedProfile();
+        _isAuthenticated = true;
+        _errorMessage = null;
       }
-
-      _isAuthenticated = false;
-      _profile = null;
-      _errorMessage = error.message;
     } catch (_) {
-      _isAuthenticated = false;
-      _profile = null;
-      _errorMessage = 'Tidak dapat memvalidasi sesi. Silakan login kembali.';
+      _profile = _readCachedProfile();
+      _isAuthenticated = true;
+      _errorMessage = null;
     } finally {
       _isInitializing = false;
       notifyListeners();
@@ -151,6 +151,27 @@ class SessionProvider extends ChangeNotifier {
       _isAuthenticated = false;
       _isSubmitting = false;
       notifyListeners();
+    }
+  }
+
+  MeResponse? _readCachedProfile() {
+    final raw = _prefs.getString(AppStorageKeys.profileDosenJson);
+    if (raw == null || raw.trim().isEmpty) return null;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) return null;
+      return MeResponse(
+        login: (decoded['login'] ?? '').toString(),
+        nidn: (decoded['nidn'] ?? '').toString(),
+        nama: (decoded['nama'] ?? '').toString(),
+        gelar: (decoded['gelar'] ?? '').toString(),
+        handphone: (decoded['handphone'] ?? '').toString(),
+        email: (decoded['email'] ?? '').toString(),
+        foto: (decoded['foto'] ?? '').toString(),
+        prodi: (decoded['prodi'] ?? '').toString(),
+      );
+    } catch (_) {
+      return null;
     }
   }
 }

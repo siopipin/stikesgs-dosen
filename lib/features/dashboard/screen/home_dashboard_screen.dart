@@ -79,7 +79,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   onTap: () => widget.onNavigateTab(1),
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 12),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: _QuickStatGrid(
