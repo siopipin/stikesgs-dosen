@@ -61,22 +61,29 @@ class _HomeShellScreenState extends State<HomeShellScreen> {
               data: NavigationBarThemeData(
                 backgroundColor: Colors.transparent,
                 elevation: 0,
-                indicatorColor: scheme.primaryContainer.withValues(alpha: 0.95),
+                indicatorColor: scheme.primary.withValues(alpha: 0.14),
                 iconTheme: WidgetStateProperty.resolveWith(
                   (states) {
                     final selected = states.contains(WidgetState.selected);
                     return IconThemeData(
-                      color: selected ? scheme.primary : scheme.onSurfaceVariant,
-                      size: selected ? 25 : 23,
+                      color: selected
+                          ? scheme.primary
+                          : scheme.onSurfaceVariant.withValues(alpha: 0.72),
+                      size: selected ? 24 : 22,
                     );
                   },
                 ),
                 labelTextStyle: WidgetStateProperty.resolveWith(
                   (states) {
                     final selected = states.contains(WidgetState.selected);
-                    return theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                      color: selected ? scheme.primary : scheme.onSurfaceVariant,
+                    return TextStyle(
+                      fontSize: selected ? 12 : 11,
+                      height: 1.15,
+                      letterSpacing: 0.1,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                      color: selected
+                          ? scheme.primary
+                          : scheme.onSurfaceVariant.withValues(alpha: 0.74),
                     );
                   },
                 ),

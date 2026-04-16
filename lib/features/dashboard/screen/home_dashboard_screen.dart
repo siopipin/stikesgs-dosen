@@ -79,15 +79,16 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   onTap: () => widget.onNavigateTab(1),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: _QuickStatGrid(
                   jadwalHariIni: summary?.jumlahJadwalHariIni ?? 0,
                   totalSks: summary?.totalSksSemester ?? 0,
                   jumlahPa: summary?.jumlahMhsBimbingan ?? 0,
-                  jumlahPenilaian:
-                      provider.schedules.isNotEmpty ? provider.schedules.length : 0,
+                  jumlahPenilaian: provider.schedules.isNotEmpty
+                      ? provider.schedules.length
+                      : 0,
                   onSelectTab: widget.onNavigateTab,
                 ),
               ),
@@ -114,7 +115,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     );
   }
 
-  TeachingScheduleItem? _pickTodaySchedule(List<TeachingScheduleItem> schedules) {
+  TeachingScheduleItem? _pickTodaySchedule(
+    List<TeachingScheduleItem> schedules,
+  ) {
     if (schedules.isEmpty) return null;
 
     final dayName = _indonesianDayName(DateTime.now().weekday);
@@ -164,13 +167,20 @@ class _DashboardHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final now = DateTime.now();
+    final dateLabel =
+        '${_indonesianDayName(now.weekday)}, ${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}';
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-      decoration: const BoxDecoration(
+      padding: const EdgeInsets.fromLTRB(16, 32, 16, 18),
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFF0B57D0), Color(0xFF00639A)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
+        ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(20),
+          bottomRight: Radius.circular(20),
         ),
       ),
       child: Column(
@@ -197,7 +207,7 @@ class _DashboardHeader extends StatelessWidget {
                       'RuangDosen',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 31,
+                        fontSize: 21,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -205,7 +215,7 @@ class _DashboardHeader extends StatelessWidget {
                       'STIKESGS',
                       style: TextStyle(
                         color: Colors.white70,
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -225,17 +235,25 @@ class _DashboardHeader extends StatelessWidget {
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          const CircleAvatar(
+                          CircleAvatar(
                             radius: 17,
-                            backgroundColor: Colors.white24,
-                            child: Icon(Icons.notifications_none, color: Colors.white),
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.2,
+                            ),
+                            child: const Icon(
+                              Icons.notifications_none,
+                              color: Colors.white,
+                            ),
                           ),
                           if (unreadCount > 0)
                             Positioned(
                               right: -2,
                               top: -4,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.redAccent,
                                   borderRadius: BorderRadius.circular(10),
@@ -263,13 +281,13 @@ class _DashboardHeader extends StatelessWidget {
                 child: InkWell(
                   onTap: onOpenProfile,
                   borderRadius: BorderRadius.circular(30),
-                  child: const SizedBox(
+                  child: SizedBox(
                     width: 48,
                     height: 48,
                     child: Center(
                       child: CircleAvatar(
                         radius: 18,
-                        backgroundColor: Colors.white30,
+                        backgroundColor: Colors.white.withValues(alpha: 0.2),
                         child: Icon(Icons.person, color: Colors.white),
                       ),
                     ),
@@ -281,14 +299,24 @@ class _DashboardHeader extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             'Selamat Datang, $lecturerName',
-            style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white),
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: Colors.white.withValues(alpha: 0.95),
+            ),
           ),
           const SizedBox(height: 4),
           Text(
-            '${_greetingByTime()}!',
+            _greetingByTime(),
             style: theme.textTheme.headlineMedium?.copyWith(
               color: Colors.white,
-              fontSize: 32,
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            dateLabel,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.white.withValues(alpha: 0.82),
             ),
           ),
         ],
@@ -296,20 +324,38 @@ class _DashboardHeader extends StatelessWidget {
     );
   }
 
+  String _indonesianDayName(int weekday) {
+    switch (weekday) {
+      case DateTime.monday:
+        return 'Senin';
+      case DateTime.tuesday:
+        return 'Selasa';
+      case DateTime.wednesday:
+        return 'Rabu';
+      case DateTime.thursday:
+        return 'Kamis';
+      case DateTime.friday:
+        return 'Jumat';
+      case DateTime.saturday:
+        return 'Sabtu';
+      case DateTime.sunday:
+        return 'Minggu';
+      default:
+        return '';
+    }
+  }
+
   String _greetingByTime() {
     final hour = DateTime.now().hour;
-    if (hour < 11) return 'Good Morning';
-    if (hour < 15) return 'Good Afternoon';
-    if (hour < 19) return 'Good Evening';
-    return 'Good Night';
+    if (hour < 11) return 'Selamat Pagi';
+    if (hour < 15) return 'Selamat Siang';
+    if (hour < 19) return 'Selamat Sore';
+    return 'Selamat Malam';
   }
 }
 
 class _TodayScheduleCard extends StatelessWidget {
-  const _TodayScheduleCard({
-    required this.schedule,
-    required this.onTap,
-  });
+  const _TodayScheduleCard({required this.schedule, required this.onTap});
 
   final TeachingScheduleItem? schedule;
   final VoidCallback onTap;
@@ -317,13 +363,18 @@ class _TodayScheduleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasData = schedule != null;
+    final scheme = Theme.of(context).colorScheme;
     return Semantics(
       button: true,
       label: 'Buka tab jadwal mengajar',
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
-        child: Card(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: scheme.surface,
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Row(
@@ -332,12 +383,16 @@ class _TodayScheduleCard extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF0B7D65), Color(0xFF149A7D)],
+                    ),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.calendar_month_rounded,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -347,21 +402,46 @@ class _TodayScheduleCard extends StatelessWidget {
                     children: [
                       Text(
                         'Jadwal Hari Ini',
-                        style: Theme.of(context).textTheme.titleMedium,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(color: scheme.onSurface),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         hasData
-                            ? '${schedule!.jamMulai} - ${schedule!.jamSelesai} | ${schedule!.namaMk} | ${schedule!.ruang}'
+                            ? schedule!.namaMk
                             : 'Belum ada jadwal hari ini.',
-                        style: Theme.of(context).textTheme.bodyMedium,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurface,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
+                      if (hasData) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          '${schedule!.jamMulai} - ${schedule!.jamSelesai} • ${schedule!.ruang}',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: scheme.onSurfaceVariant),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                      if (!hasData) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'Tap untuk lihat semua jadwal.',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: scheme.onSurfaceVariant),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ],
                   ),
                 ),
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  color: scheme.onSurfaceVariant,
                 ),
               ],
             ),
@@ -395,6 +475,7 @@ class _QuickStatGrid extends StatelessWidget {
         semanticLabel: 'jadwal hari ini',
         value: '$jadwalHariIni',
         color: const Color(0xFF0B7D65),
+        gradientEndColor: const Color(0xFF149A7D),
         icon: Icons.calendar_today_rounded,
         targetTabIndex: 1,
       ),
@@ -403,6 +484,7 @@ class _QuickStatGrid extends StatelessWidget {
         semanticLabel: 'rekap sks diampu',
         value: '$totalSks',
         color: const Color(0xFFDD8A00),
+        gradientEndColor: const Color(0xFFF4A321),
         icon: Icons.assignment_rounded,
         targetTabIndex: 2,
       ),
@@ -411,6 +493,7 @@ class _QuickStatGrid extends StatelessWidget {
         semanticLabel: 'daftar mahasiswa pa',
         value: '$jumlahPa',
         color: const Color(0xFF2A67C7),
+        gradientEndColor: const Color(0xFF4F82D6),
         icon: Icons.groups_rounded,
         targetTabIndex: 4,
       ),
@@ -419,12 +502,14 @@ class _QuickStatGrid extends StatelessWidget {
         semanticLabel: 'jadwal penilaian',
         value: '$jumlahPenilaian',
         color: const Color(0xFFB8405E),
+        gradientEndColor: const Color(0xFFCC5D79),
         icon: Icons.schedule_rounded,
         targetTabIndex: 3,
       ),
     ];
 
     return GridView.builder(
+      padding: EdgeInsets.zero,
       itemCount: items.length,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -432,7 +517,7 @@ class _QuickStatGrid extends StatelessWidget {
         crossAxisCount: 2,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 2.35,
+        childAspectRatio: 2.1,
       ),
       itemBuilder: (_, index) => _StatCard(
         item: items[index],
@@ -443,16 +528,14 @@ class _QuickStatGrid extends StatelessWidget {
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.item,
-    required this.onTap,
-  });
+  const _StatCard({required this.item, required this.onTap});
 
   final _StatCardData item;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final title = item.title.replaceAll('\n', ' ');
     return Semantics(
       button: true,
       label: 'Buka ${item.semanticLabel}',
@@ -461,17 +544,21 @@ class _StatCard extends StatelessWidget {
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
-            color: item.color,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [item.color, item.gradientEndColor],
+            ),
             borderRadius: BorderRadius.circular(14),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
           child: Row(
             children: [
               Text(
                 item.value,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 42,
+                  fontSize: 39,
                   fontWeight: FontWeight.w700,
                   height: 1,
                 ),
@@ -479,16 +566,23 @@ class _StatCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  item.title,
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 22,
+                    fontSize: 20,
                     fontWeight: FontWeight.w600,
                     height: 1.1,
                   ),
                 ),
               ),
-              Icon(item.icon, color: Colors.white70, size: 29),
+              const SizedBox(width: 6),
+              Icon(
+                item.icon,
+                color: Colors.white.withValues(alpha: 0.92),
+                size: 28,
+              ),
             ],
           ),
         ),
@@ -503,6 +597,7 @@ class _StatCardData {
     required this.semanticLabel,
     required this.value,
     required this.color,
+    required this.gradientEndColor,
     required this.icon,
     required this.targetTabIndex,
   });
@@ -511,22 +606,24 @@ class _StatCardData {
   final String semanticLabel;
   final String value;
   final Color color;
+  final Color gradientEndColor;
   final IconData icon;
   final int targetTabIndex;
 }
 
 class _AnnouncementPanel extends StatelessWidget {
-  const _AnnouncementPanel({
-    required this.items,
-    required this.onViewAll,
-  });
+  const _AnnouncementPanel({required this.items, required this.onViewAll});
 
   final List<AnnouncementItem> items;
   final VoidCallback onViewAll;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: scheme.surface,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
         child: Column(
@@ -544,9 +641,11 @@ class _AnnouncementPanel extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Spacer(),
-                Icon(
-                  Icons.more_horiz_rounded,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                Text(
+                  '${items.length} item',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -564,18 +663,25 @@ class _AnnouncementPanel extends StatelessWidget {
                 final text = item.title.toString();
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 11,
+                  ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF7F9FC),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Theme.of(context).colorScheme.outline),
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
                       Icon(
-                        item.isRead ? Icons.drafts_rounded : Icons.markunread_rounded,
+                        item.isRead
+                            ? Icons.drafts_rounded
+                            : Icons.markunread_rounded,
                         size: 18,
-                        color: Theme.of(context).colorScheme.primary,
+                        color: item.isRead
+                            ? Theme.of(context).colorScheme.onSurfaceVariant
+                            : Theme.of(context).colorScheme.primary,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -616,10 +722,7 @@ class _DashboardLoadingView extends StatelessWidget {
 }
 
 class _DashboardErrorView extends StatelessWidget {
-  const _DashboardErrorView({
-    required this.message,
-    required this.onRetry,
-  });
+  const _DashboardErrorView({required this.message, required this.onRetry});
 
   final String message;
   final Future<void> Function() onRetry;
@@ -640,10 +743,7 @@ class _DashboardErrorView extends StatelessWidget {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: onRetry,
-              child: const Text('Coba Lagi'),
-            ),
+            ElevatedButton(onPressed: onRetry, child: const Text('Coba Lagi')),
           ],
         ),
       ),
