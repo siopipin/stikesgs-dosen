@@ -445,10 +445,8 @@ class _LogEditorDialogState extends State<_LogEditorDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _inputField(
-                controller: _tanggalController,
-                label: 'Tanggal Konsultasi',
-                hint: 'YYYY-MM-DD',
+              _dateField(
+                context,
                 validator: (value) {
                   final text = (value ?? '').trim();
                   if (text.isEmpty) return 'Tanggal konsultasi wajib diisi';
@@ -528,6 +526,27 @@ class _LogEditorDialogState extends State<_LogEditorDialog> {
     );
   }
 
+  Widget _dateField(
+    BuildContext context, {
+    required FormFieldValidator<String> validator,
+  }) {
+    return TextFormField(
+      controller: _tanggalController,
+      readOnly: true,
+      decoration: InputDecoration(
+        labelText: 'Tanggal Konsultasi',
+        hintText: 'YYYY-MM-DD',
+        suffixIcon: IconButton(
+          tooltip: 'Pilih tanggal',
+          onPressed: () => _pickDate(context),
+          icon: const Icon(Icons.calendar_month_rounded),
+        ),
+      ),
+      onTap: () => _pickDate(context),
+      validator: validator,
+    );
+  }
+
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
     Navigator.of(context).pop(
@@ -551,5 +570,41 @@ class _LogEditorDialogState extends State<_LogEditorDialog> {
     if (month < 1 || month > 12) return false;
     if (day < 1 || day > 31) return false;
     return true;
+  }
+
+  Future<void> _pickDate(BuildContext context) async {
+    final initial = _parseIsoDate(_tanggalController.text) ?? DateTime.now();
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      helpText: 'Pilih Tanggal Konsultasi',
+    );
+    if (selected == null || !mounted) return;
+    _tanggalController.text = _formatIsoDate(selected);
+  }
+
+  DateTime? _parseIsoDate(String value) {
+    final text = value.trim();
+    if (text.isEmpty) return null;
+    final parts = text.split('-');
+    if (parts.length != 3) return null;
+    final year = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    final day = int.tryParse(parts[2]);
+    if (year == null || month == null || day == null) return null;
+    return DateTime.tryParse(
+      '${year.toString().padLeft(4, '0')}-'
+      '${month.toString().padLeft(2, '0')}-'
+      '${day.toString().padLeft(2, '0')}',
+    );
+  }
+
+  String _formatIsoDate(DateTime value) {
+    final yyyy = value.year.toString().padLeft(4, '0');
+    final mm = value.month.toString().padLeft(2, '0');
+    final dd = value.day.toString().padLeft(2, '0');
+    return '$yyyy-$mm-$dd';
   }
 }

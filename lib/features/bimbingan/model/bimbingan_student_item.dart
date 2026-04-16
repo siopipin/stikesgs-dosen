@@ -71,7 +71,12 @@ class BimbinganLogItem {
 
   factory BimbinganLogItem.fromJson(Map<String, dynamic> json) {
     return BimbinganLogItem(
-      id: _toInt(json['id'] ?? json['ID']),
+      id: _toInt(
+        json['id'] ??
+            json['ID'] ??
+            json['LogKonsultasiPAID'] ??
+            json['log_konsultasi_pa_id'],
+      ),
       mhswId: _firstNonEmpty([
         json['mhsw_id'],
         json['MhswID'],
