@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_assets.dart';
+import '../../notifikasi/screen/notifikasi_screen.dart';
 import '../model/announcement_item.dart';
 import '../model/teaching_schedule_item.dart';
 import '../provider/home_dashboard_provider.dart';
-import 'announcement_list_screen.dart';
 
 class HomeDashboardScreen extends StatefulWidget {
   const HomeDashboardScreen({
@@ -61,6 +61,15 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                     : 'Dosen',
                 unreadCount: summary?.jumlahNotifAkademik ?? 0,
                 onOpenProfile: widget.onOpenProfile,
+                onOpenNotifications: () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const NotifikasiScreen(),
+                    ),
+                  );
+                  if (!context.mounted) return;
+                  await context.read<HomeDashboardProvider>().refresh();
+                },
               ),
               const SizedBox(height: 12),
               Padding(
@@ -87,12 +96,14 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: _AnnouncementPanel(
                   items: announcements,
-                  onViewAll: () {
-                    Navigator.of(context).push(
+                  onViewAll: () async {
+                    await Navigator.of(context).push(
                       MaterialPageRoute<void>(
-                        builder: (_) => const AnnouncementListScreen(),
+                        builder: (_) => const NotifikasiScreen(),
                       ),
                     );
+                    if (!context.mounted) return;
+                    await context.read<HomeDashboardProvider>().refresh();
                   },
                 ),
               ),
@@ -142,11 +153,13 @@ class _DashboardHeader extends StatelessWidget {
     required this.lecturerName,
     required this.unreadCount,
     required this.onOpenProfile,
+    required this.onOpenNotifications,
   });
 
   final String lecturerName;
   final int unreadCount;
   final VoidCallback onOpenProfile;
+  final VoidCallback onOpenNotifications;
 
   @override
   Widget build(BuildContext context) {
@@ -199,44 +212,68 @@ class _DashboardHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  const CircleAvatar(
-                    radius: 17,
-                    backgroundColor: Colors.white24,
-                    child: Icon(Icons.notifications_none, color: Colors.white),
-                  ),
-                  if (unreadCount > 0)
-                    Positioned(
-                      right: -2,
-                      top: -4,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.redAccent,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          unreadCount > 99 ? '99+' : '$unreadCount',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
+              Semantics(
+                button: true,
+                label: 'Buka notifikasi',
+                child: InkWell(
+                  onTap: onOpenNotifications,
+                  borderRadius: BorderRadius.circular(20),
+                  child: SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: Center(
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          const CircleAvatar(
+                            radius: 17,
+                            backgroundColor: Colors.white24,
+                            child: Icon(Icons.notifications_none, color: Colors.white),
                           ),
-                        ),
+                          if (unreadCount > 0)
+                            Positioned(
+                              right: -2,
+                              top: -4,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.redAccent,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  unreadCount > 99 ? '99+' : '$unreadCount',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                ],
+                  ),
+                ),
               ),
               const SizedBox(width: 10),
-              InkWell(
-                onTap: onOpenProfile,
-                borderRadius: BorderRadius.circular(30),
-                child: const CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.white30,
-                  child: Icon(Icons.person, color: Colors.white),
+              Semantics(
+                button: true,
+                label: 'Buka profil dosen',
+                child: InkWell(
+                  onTap: onOpenProfile,
+                  borderRadius: BorderRadius.circular(30),
+                  child: const SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: Center(
+                      child: CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Colors.white30,
+                        child: Icon(Icons.person, color: Colors.white),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -280,50 +317,54 @@ class _TodayScheduleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasData = schedule != null;
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
+    return Semantics(
+      button: true,
+      label: 'Buka tab jadwal mengajar',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.calendar_month_rounded,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
-                child: Icon(
-                  Icons.calendar_month_rounded,
-                  color: Theme.of(context).colorScheme.primary,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Jadwal Hari Ini',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        hasData
+                            ? '${schedule!.jamMulai} - ${schedule!.jamSelesai} | ${schedule!.namaMk} | ${schedule!.ruang}'
+                            : 'Belum ada jadwal hari ini.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Jadwal Hari Ini',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      hasData
-                          ? '${schedule!.jamMulai} - ${schedule!.jamSelesai} | ${schedule!.namaMk} | ${schedule!.ruang}'
-                          : 'Belum ada jadwal hari ini.',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -351,6 +392,7 @@ class _QuickStatGrid extends StatelessWidget {
     final items = [
       _StatCardData(
         title: 'Jadwal\nHari Ini',
+        semanticLabel: 'jadwal hari ini',
         value: '$jadwalHariIni',
         color: const Color(0xFF0B7D65),
         icon: Icons.calendar_today_rounded,
@@ -358,6 +400,7 @@ class _QuickStatGrid extends StatelessWidget {
       ),
       _StatCardData(
         title: 'SKS\nDiampu',
+        semanticLabel: 'rekap sks diampu',
         value: '$totalSks',
         color: const Color(0xFFDD8A00),
         icon: Icons.assignment_rounded,
@@ -365,6 +408,7 @@ class _QuickStatGrid extends StatelessWidget {
       ),
       _StatCardData(
         title: 'Mahasiswa\nPA',
+        semanticLabel: 'daftar mahasiswa pa',
         value: '$jumlahPa',
         color: const Color(0xFF2A67C7),
         icon: Icons.groups_rounded,
@@ -372,6 +416,7 @@ class _QuickStatGrid extends StatelessWidget {
       ),
       _StatCardData(
         title: 'Jadwal\nPenilaian',
+        semanticLabel: 'jadwal penilaian',
         value: '$jumlahPenilaian',
         color: const Color(0xFFB8405E),
         icon: Icons.schedule_rounded,
@@ -408,40 +453,44 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: item.color,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          children: [
-            Text(
-              item.value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 42,
-                fontWeight: FontWeight.w700,
-                height: 1,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                item.title,
+    return Semantics(
+      button: true,
+      label: 'Buka ${item.semanticLabel}',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: item.color,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              Text(
+                item.value,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
-                  height: 1.1,
+                  fontSize: 42,
+                  fontWeight: FontWeight.w700,
+                  height: 1,
                 ),
               ),
-            ),
-            Icon(item.icon, color: Colors.white70, size: 29),
-          ],
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  item.title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                    height: 1.1,
+                  ),
+                ),
+              ),
+              Icon(item.icon, color: Colors.white70, size: 29),
+            ],
+          ),
         ),
       ),
     );
@@ -451,6 +500,7 @@ class _StatCard extends StatelessWidget {
 class _StatCardData {
   const _StatCardData({
     required this.title,
+    required this.semanticLabel,
     required this.value,
     required this.color,
     required this.icon,
@@ -458,6 +508,7 @@ class _StatCardData {
   });
 
   final String title;
+  final String semanticLabel;
   final String value;
   final Color color;
   final IconData icon;
@@ -540,9 +591,13 @@ class _AnnouncementPanel extends StatelessWidget {
                 );
               }),
             const SizedBox(height: 4),
-            OutlinedButton(
-              onPressed: onViewAll,
-              child: const Text('Lihat Semua'),
+            Semantics(
+              button: true,
+              label: 'Lihat semua notifikasi',
+              child: OutlinedButton(
+                onPressed: onViewAll,
+                child: const Text('Lihat Semua'),
+              ),
             ),
           ],
         ),

@@ -141,6 +141,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   labelText: 'Password',
                   hintText: 'Masukkan password',
                   suffixIcon: IconButton(
+                    tooltip: _obscurePassword
+                        ? 'Tampilkan password'
+                        : 'Sembunyikan password',
                     onPressed: () {
                       setState(() {
                         _obscurePassword = !_obscurePassword;

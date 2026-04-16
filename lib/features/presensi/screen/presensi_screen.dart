@@ -33,6 +33,7 @@ class _PresensiScreenState extends State<PresensiScreen> {
             actions: [
               IconButton(
                 onPressed: provider.isActionLoading ? null : provider.refreshAll,
+                tooltip: 'Refresh data presensi',
                 icon: const Icon(Icons.refresh_rounded),
               ),
             ],

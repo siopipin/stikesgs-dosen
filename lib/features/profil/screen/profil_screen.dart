@@ -61,6 +61,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
             actions: [
               IconButton(
                 onPressed: provider.isSubmitting ? null : provider.loadProfil,
+                tooltip: 'Refresh profil',
                 icon: const Icon(Icons.refresh_rounded),
               ),
               IconButton(

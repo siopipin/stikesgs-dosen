@@ -16,6 +16,8 @@ import 'features/dashboard/service/dashboard_service.dart';
 import 'features/home/screen/home_shell_screen.dart';
 import 'features/penilaian/provider/penilaian_provider.dart';
 import 'features/penilaian/service/penilaian_service.dart';
+import 'features/notifikasi/provider/notifikasi_provider.dart';
+import 'features/notifikasi/service/notifikasi_service.dart';
 import 'features/presensi/provider/presensi_provider.dart';
 import 'features/presensi/service/presensi_service.dart';
 import 'features/profil/provider/profil_provider.dart';
@@ -39,6 +41,7 @@ class MyApp extends StatelessWidget {
     final dashboardService = DashboardService(apiClient);
     final bimbinganService = BimbinganService(apiClient);
     final penilaianService = PenilaianService(apiClient);
+    final notifikasiService = NotifikasiService(apiClient);
     final presensiService = PresensiService(apiClient);
     final profilService = ProfilService(apiClient);
 
@@ -62,6 +65,9 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => BimbinganProvider(bimbinganService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => NotifikasiProvider(notifikasiService),
         ),
         ChangeNotifierProvider(
           create: (_) => ProfilProvider(profilService),
