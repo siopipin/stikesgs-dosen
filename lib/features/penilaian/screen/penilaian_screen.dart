@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../model/penilaian_schedule_item.dart';
 import '../model/penilaian_student_item.dart';
 import '../provider/penilaian_provider.dart';
 
@@ -43,7 +42,9 @@ class _PenilaianScreenState extends State<PenilaianScreen> {
             title: const Text('Penilaian'),
             actions: [
               IconButton(
-                onPressed: provider.isActionLoading ? null : provider.refreshAll,
+                onPressed: provider.isActionLoading
+                    ? null
+                    : provider.refreshAll,
                 tooltip: 'Refresh data penilaian',
                 icon: const Icon(Icons.refresh_rounded),
               ),
@@ -64,7 +65,9 @@ class _PenilaianScreenState extends State<PenilaianScreen> {
                   const SizedBox(height: 12),
                   Text(
                     provider.errorMessage!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   ),
                 ],
               ],
@@ -77,10 +80,7 @@ class _PenilaianScreenState extends State<PenilaianScreen> {
 }
 
 class _FilterSection extends StatelessWidget {
-  const _FilterSection({
-    required this.provider,
-    required this.tahunController,
-  });
+  const _FilterSection({required this.provider, required this.tahunController});
 
   final PenilaianProvider provider;
   final TextEditingController tahunController;
@@ -110,7 +110,9 @@ class _FilterSection extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             ElevatedButton.icon(
-              onPressed: provider.isActionLoading ? null : () => _loadSchedules(context),
+              onPressed: provider.isActionLoading
+                  ? null
+                  : () => _loadSchedules(context),
               icon: const Icon(Icons.filter_alt_rounded),
               label: const Text('Muat Jadwal Penilaian'),
             ),
@@ -123,9 +125,7 @@ class _FilterSection extends StatelessWidget {
               DropdownButtonFormField<int>(
                 isExpanded: true,
                 value: provider.selectedSchedule?.jadwalId,
-                decoration: const InputDecoration(
-                  labelText: 'Jadwal',
-                ),
+                decoration: const InputDecoration(labelText: 'Jadwal'),
                 items: provider.schedules
                     .map(
                       (item) => DropdownMenuItem<int>(
@@ -183,13 +183,13 @@ class _CoordinatorInfo extends StatelessWidget {
     final color = !hasJenis
         ? colorScheme.secondary
         : isCoordinator
-            ? Colors.green
-            : colorScheme.error;
+        ? Colors.green
+        : colorScheme.error;
     final message = !hasJenis
         ? 'Jenis dosen tidak dikirim backend. Input nilai tetap akan diverifikasi server.'
         : isCoordinator
-            ? 'Anda dosen koordinator ($jenis), input nilai diizinkan.'
-            : 'Anda bukan koordinator ($jenis). Input nilai dikunci.';
+        ? 'Anda dosen koordinator ($jenis), input nilai diizinkan.'
+        : 'Anda bukan koordinator ($jenis). Input nilai dikunci.';
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -206,7 +206,9 @@ class _CoordinatorInfo extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: color),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: color),
             ),
           ),
         ],
@@ -289,7 +291,8 @@ class _StudentListSection extends StatelessWidget {
                         content: Text(
                           ok
                               ? 'Nilai ${item.nama} berhasil disimpan.'
-                              : (provider.errorMessage ?? 'Simpan nilai gagal.'),
+                              : (provider.errorMessage ??
+                                    'Simpan nilai gagal.'),
                         ),
                       ),
                     );
@@ -323,7 +326,9 @@ class _StudentScoreTile extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(10),
@@ -474,10 +479,7 @@ class _ScoreEditorDialogState extends State<_ScoreEditorDialog> {
     return TextFormField(
       controller: controller,
       keyboardType: TextInputType.number,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: '0 - 100',
-      ),
+      decoration: InputDecoration(labelText: label, hintText: '0 - 100'),
       validator: (value) {
         final text = (value ?? '').trim();
         if (text.isEmpty) return 'Nilai wajib diisi';
