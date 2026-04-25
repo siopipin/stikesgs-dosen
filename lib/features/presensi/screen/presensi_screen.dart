@@ -274,9 +274,7 @@ class _SessionSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final open = provider.openSession;
-    final canStart = open == null &&
-        provider.selectedSchedule != null &&
-        !provider.isActionLoading;
+    final canStart = provider.canStartSession;
     final canEnd = open != null &&
         open.status.toUpperCase() == 'OPEN' &&
         !provider.isActionLoading;
@@ -289,9 +287,13 @@ class _SessionSection extends StatelessWidget {
           children: [
             Text('Sesi Presensi', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
+            _MeetingStateBanner(provider: provider),
+            const SizedBox(height: 8),
             if (open == null)
               Text(
-                'Belum ada sesi aktif. Mulai sesi untuk membuat QR token presensi.',
+                provider.isPresensiSudahDilakukan
+                    ? 'Presensi untuk pertemuan ini sudah dilakukan. Anda dapat melihat daftar mahasiswa dan statusnya.'
+                    : 'Belum ada sesi aktif. Mulai sesi untuk membuat QR token presensi.',
                 style: Theme.of(context).textTheme.bodyMedium,
               )
             else
@@ -413,6 +415,16 @@ class _AttendanceSection extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Spacer(),
+                if (provider.totalMahasiswa > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: Text(
+                      '${provider.totalMahasiswa} mhs',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ),
                 IconButton(
                   onPressed: provider.isActionLoading || !hasPresensiRow
                       ? null
@@ -422,7 +434,7 @@ class _AttendanceSection extends StatelessWidget {
                 ),
               ],
             ),
-            if (!hasPresensiRow)
+            if (!hasPresensiRow && provider.attendance.isEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
@@ -440,6 +452,18 @@ class _AttendanceSection extends StatelessWidget {
                 ),
               )
             else
+              ...[
+                if (!hasPresensiRow)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, bottom: 8),
+                    child: Text(
+                      'Daftar mahasiswa pertemuan ini diambil dari endpoint aktif.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ),
+              ],
               ...provider.attendance.map(
                 (item) => _AttendanceTile(
                   item: item,
@@ -583,6 +607,49 @@ class _StatusChip extends StatelessWidget {
       labelStyle: TextStyle(
         color: color,
         fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+}
+
+class _MeetingStateBanner extends StatelessWidget {
+  const _MeetingStateBanner({required this.provider});
+
+  final PresensiProvider provider;
+
+  @override
+  Widget build(BuildContext context) {
+    final done = provider.isPresensiSudahDilakukan;
+    final scheme = Theme.of(context).colorScheme;
+    final Color color = done ? scheme.error : Colors.green;
+    final text = done
+        ? 'Pertemuan ${provider.pertemuan}: Presensi sudah dilakukan'
+        : 'Pertemuan ${provider.pertemuan}: Presensi belum dilakukan';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            done ? Icons.event_busy_rounded : Icons.event_available_rounded,
+            color: color,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ),
+        ],
       ),
     );
   }

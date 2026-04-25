@@ -126,6 +126,9 @@ PresensiAktifContext _parseAktifEnvelope(
     return const PresensiAktifContext();
   }
   final data = dataRoot;
+  final bool isSudahDilakukan = _toBool(data['is_presensi_sudah_dilakukan']);
+  final int totalMahasiswa = _toInt(data['total_mahasiswa']);
+  final List<PresensiAttendanceItem> meetingStudents = _parseStudents(data);
 
   PresensiSession? activeMap;
   final rawActive = data['active_session'];
@@ -207,5 +210,35 @@ PresensiAktifContext _parseAktifEnvelope(
   return PresensiAktifContext(
     openSession: openSession,
     meetingSession: meetingSession,
+    isPresensiSudahDilakukan: isSudahDilakukan,
+    totalMahasiswa: totalMahasiswa,
+    meetingStudents: meetingStudents,
   );
+}
+
+List<PresensiAttendanceItem> _parseStudents(Map<String, dynamic> data) {
+  final list = data['mahasiswa'] ?? data['kehadiran'] ?? data['students'];
+  if (list is! List<dynamic>) return const <PresensiAttendanceItem>[];
+  return list
+      .whereType<Map<String, dynamic>>()
+      .map(PresensiAttendanceItem.fromJson)
+      .toList();
+}
+
+bool _toBool(dynamic value) {
+  if (value is bool) return value;
+  if (value is int) return value == 1;
+  if (value is num) return value.toInt() == 1;
+  if (value is String) {
+    final normalized = value.trim().toLowerCase();
+    return normalized == '1' || normalized == 'true' || normalized == 'yes';
+  }
+  return false;
+}
+
+int _toInt(dynamic value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? 0;
+  return 0;
 }

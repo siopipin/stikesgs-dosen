@@ -1,3 +1,5 @@
+import 'presensi_attendance_item.dart';
+
 class PresensiSession {
   PresensiSession({
     required this.presensiId,
@@ -72,6 +74,9 @@ class PresensiAktifContext {
   const PresensiAktifContext({
     this.openSession,
     this.meetingSession,
+    this.isPresensiSudahDilakukan = false,
+    this.totalMahasiswa = 0,
+    this.meetingStudents = const <PresensiAttendanceItem>[],
   });
 
   /// Sesi berstatus OPEN untuk jadwal ini (token QR / tutup manual).
@@ -79,4 +84,13 @@ class PresensiAktifContext {
 
   /// Presensi untuk pertemuan yang dipilih (bisa sudah ditutup), dipakai untuk GET kehadiran.
   final PresensiSession? meetingSession;
+
+  /// Flag backend: pertemuan ini sudah pernah dilakukan presensi.
+  final bool isPresensiSudahDilakukan;
+
+  /// Total mahasiswa untuk pertemuan terpilih.
+  final int totalMahasiswa;
+
+  /// List mahasiswa dari endpoint `presensi/aktif` (tiap pertemuan terpilih).
+  final List<PresensiAttendanceItem> meetingStudents;
 }

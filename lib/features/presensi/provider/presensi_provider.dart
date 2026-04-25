@@ -20,6 +20,8 @@ class PresensiProvider extends ChangeNotifier {
   PresensiSession? _openSession;
   PresensiSession? _meetingSession;
   List<PresensiAttendanceItem> _attendance = <PresensiAttendanceItem>[];
+  bool _isPresensiSudahDilakukan = false;
+  int _totalMahasiswa = 0;
   int _pertemuan = 1;
 
   bool get isLoading => _isLoading;
@@ -35,8 +37,15 @@ class PresensiProvider extends ChangeNotifier {
   PresensiSession? get meetingSession => _meetingSession;
 
   List<PresensiAttendanceItem> get attendance => _attendance;
+  bool get isPresensiSudahDilakukan => _isPresensiSudahDilakukan;
+  int get totalMahasiswa => _totalMahasiswa;
   int get pertemuan => _pertemuan;
   bool get canEditAttendance => _meetingSession?.canEditAttendance ?? false;
+  bool get canStartSession =>
+      _openSession == null &&
+      _selectedSchedule != null &&
+      !_isActionLoading &&
+      !_isPresensiSudahDilakukan;
 
   Future<void> ensureLoaded() async {
     if (_initialized) return;
@@ -69,6 +78,8 @@ class PresensiProvider extends ChangeNotifier {
     _openSession = null;
     _meetingSession = null;
     _attendance = <PresensiAttendanceItem>[];
+    _isPresensiSudahDilakukan = false;
+    _totalMahasiswa = 0;
     notifyListeners();
     await _syncPresensiContext(showBlockingSpinner: true);
     await _loadAttendanceIfPossible();
@@ -92,6 +103,9 @@ class PresensiProvider extends ChangeNotifier {
     if (schedule == null) {
       _openSession = null;
       _meetingSession = null;
+      _isPresensiSudahDilakukan = false;
+      _totalMahasiswa = 0;
+      _attendance = <PresensiAttendanceItem>[];
       notifyListeners();
       return;
     }
@@ -109,6 +123,9 @@ class PresensiProvider extends ChangeNotifier {
       );
       _openSession = ctx.openSession;
       _meetingSession = ctx.meetingSession;
+      _isPresensiSudahDilakukan = ctx.isPresensiSudahDilakukan;
+      _totalMahasiswa = ctx.totalMahasiswa;
+      _attendance = ctx.meetingStudents;
     } on ApiException catch (error) {
       _errorMessage = error.message;
     } catch (_) {
@@ -124,8 +141,6 @@ class PresensiProvider extends ChangeNotifier {
   Future<void> _loadAttendanceIfPossible() async {
     final id = _meetingSession?.presensiId;
     if (id == null || id == 0) {
-      _attendance = <PresensiAttendanceItem>[];
-      notifyListeners();
       return;
     }
     await loadAttendance();
@@ -135,6 +150,11 @@ class PresensiProvider extends ChangeNotifier {
     final schedule = _selectedSchedule;
     if (schedule == null) {
       _errorMessage = 'Pilih jadwal terlebih dahulu.';
+      notifyListeners();
+      return false;
+    }
+    if (_isPresensiSudahDilakukan) {
+      _errorMessage = 'Pertemuan ini sudah dilakukan presensi, sesi baru tidak dapat dimulai.';
       notifyListeners();
       return false;
     }
@@ -150,7 +170,8 @@ class PresensiProvider extends ChangeNotifier {
       );
       _meetingSession = started;
       _openSession = started;
-      await loadAttendance();
+      await _syncPresensiContext(showBlockingSpinner: false);
+      await _loadAttendanceIfPossible();
       return true;
     } on ApiException catch (error) {
       _errorMessage = error.message;
