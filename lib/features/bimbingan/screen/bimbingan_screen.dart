@@ -4,6 +4,188 @@ import 'package:provider/provider.dart';
 import '../model/bimbingan_student_item.dart';
 import '../provider/bimbingan_provider.dart';
 
+void _showMahasiswaPickerSheet(
+  BuildContext context,
+  BimbinganProvider provider,
+) {
+  final scheme = Theme.of(context).colorScheme;
+  final textTheme = Theme.of(context).textTheme;
+
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    useSafeArea: true,
+    builder: (sheetContext) {
+      return DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.52,
+        minChildSize: 0.34,
+        maxChildSize: 0.92,
+        builder: (context, scrollController) {
+          return Material(
+            color: scheme.surface,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Pilih mahasiswa PA',
+                          style: textTheme.titleLarge,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(),
+                        icon: const Icon(Icons.close_rounded),
+                        tooltip: 'Tutup',
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'Nama dan NPM ditampilkan lengkap.',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: ListView.separated(
+                    controller: scrollController,
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    itemCount: provider.students.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final student = provider.students[index];
+                      final selected =
+                          student.mhswId == provider.selectedStudent?.mhswId;
+                      return _MahasiswaPickerTile(
+                        student: student,
+                        selected: selected,
+                        enabled: !provider.isActionLoading,
+                        onTap: () {
+                          provider.selectStudent(student).then((_) {
+                            if (sheetContext.mounted) {
+                              Navigator.of(sheetContext).pop();
+                            }
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+class _MahasiswaPickerTile extends StatelessWidget {
+  const _MahasiswaPickerTile({
+    required this.student,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final BimbinganStudentItem student;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Material(
+      color: selected
+          ? scheme.primaryContainer.withValues(alpha: 0.55)
+          : scheme.surfaceContainerHighest.withValues(alpha: 0.65),
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: scheme.primaryContainer.withValues(alpha: 0.95),
+                foregroundColor: scheme.onPrimaryContainer,
+                child: Text(
+                  _initials(student.displayName),
+                  style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      student.displayName,
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        height: 1.25,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'NPM ${student.displayNpm.isEmpty ? '—' : student.displayNpm}',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    if (student.prodi.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        student.prodi,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (selected)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Icon(Icons.check_circle_rounded, color: scheme.primary, size: 22),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _initials(String name) {
+    final parts =
+        name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) {
+      final s = parts.single;
+      return s.length >= 2 ? s.substring(0, 2).toUpperCase() : s.toUpperCase();
+    }
+    return ('${parts.first[0]}${parts.last[0]}').toUpperCase();
+  }
+}
+
 class BimbinganScreen extends StatefulWidget {
   const BimbinganScreen({super.key});
 
@@ -38,12 +220,12 @@ class _BimbinganScreenState extends State<BimbinganScreen> {
           ),
           floatingActionButton: provider.selectedStudent == null
               ? null
-              : FloatingActionButton.extended(
+              : FloatingActionButton(
                   onPressed: provider.isSubmitting
                       ? null
                       : () => _openCreateLogDialog(context),
-                  label: const Text('Tambah Log'),
-                  icon: const Icon(Icons.add_rounded),
+                  tooltip: 'Tambah log bimbingan',
+                  child: const Icon(Icons.add_rounded),
                 ),
           body: RefreshIndicator(
             onRefresh: provider.refreshAll,
@@ -60,7 +242,7 @@ class _BimbinganScreenState extends State<BimbinganScreen> {
                     style: TextStyle(color: Theme.of(context).colorScheme.error),
                   ),
                 ],
-                const SizedBox(height: 84),
+                const SizedBox(height: 88),
               ],
             ),
           ),
@@ -97,94 +279,134 @@ class _StudentSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selected = provider.selectedStudent;
+    final scheme = Theme.of(context).colorScheme;
+
     return Card(
+      elevation: 0,
+      color: scheme.surface,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Mahasiswa PA', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 10),
-            if (provider.isLoading && provider.students.isEmpty)
-              const Center(child: CircularProgressIndicator())
-            else if (provider.students.isEmpty)
-              const Text('Belum ada mahasiswa bimbingan.')
-            else
-              DropdownButtonFormField<String>(
-                isExpanded: true,
-                value: selected?.mhswId,
-                decoration: const InputDecoration(
-                  labelText: 'Pilih Mahasiswa',
-                ),
-                items: provider.students
-                    .map(
-                      (student) => DropdownMenuItem<String>(
-                        value: student.mhswId,
-                        child: Text(
-                          '${student.displayName} • ${student.displayNpm}',
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
+            Row(
+              children: [
+                Icon(Icons.person_search_rounded, color: scheme.primary, size: 22),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Mahasiswa PA',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
                         ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: provider.isActionLoading
-                    ? null
-                    : (value) {
-                        if (value == null) return;
-                        final student = provider.students.firstWhere((e) => e.mhswId == value);
-                        provider.selectStudent(student);
-                      },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (provider.isLoading && provider.students.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (provider.students.isEmpty)
+              Text(
+                'Belum ada mahasiswa bimbingan.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+              )
+            else ...[
+              Semantics(
+                button: true,
+                label:
+                    'Mahasiswa terpilih: ${_semanticsMahasiswa(selected)}. Ketuk untuk mengganti.',
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: 'Mahasiswa',
+                    border: const OutlineInputBorder(),
+                    enabled: !provider.isActionLoading,
+                    suffixIcon: Icon(
+                      Icons.expand_more_rounded,
+                      color: provider.isActionLoading
+                          ? scheme.onSurface.withValues(alpha: 0.38)
+                          : scheme.onSurfaceVariant,
+                    ),
+                    contentPadding: const EdgeInsets.fromLTRB(14, 16, 8, 14),
+                  ),
+                  child: InkWell(
+                    onTap: provider.isActionLoading
+                        ? null
+                        : () => _showMahasiswaPickerSheet(context, provider),
+                    borderRadius: BorderRadius.circular(4),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: selected != null
+                          ? _SelectedMahasiswaSummary(student: selected)
+                          : Text(
+                              'Ketuk untuk memilih mahasiswa',
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                            ),
+                    ),
+                  ),
+                ),
               ),
-            if (selected != null) ...[
-              const SizedBox(height: 10),
-              _StudentInfoTile(student: selected),
             ],
           ],
         ),
       ),
     );
   }
+
+  static String _semanticsMahasiswa(BimbinganStudentItem? s) {
+    if (s == null) return 'belum dipilih';
+    final nama = s.displayName;
+    final npm = s.displayNpm.isEmpty ? 'tanpa NPM' : s.displayNpm;
+    final prodi = s.prodi.isEmpty ? '' : ', ${s.prodi}';
+    return '$nama, NPM $npm$prodi';
+  }
 }
 
-class _StudentInfoTile extends StatelessWidget {
-  const _StudentInfoTile({required this.student});
+class _SelectedMahasiswaSummary extends StatelessWidget {
+  const _SelectedMahasiswaSummary({required this.student});
 
   final BimbinganStudentItem student;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              student.displayName,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              student.displayNpm.isEmpty ? '-' : student.displayNpm,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            if (student.prodi.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(
-                student.prodi,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-              ),
-            ],
-          ],
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          student.displayName,
+          style: textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            height: 1.25,
+          ),
         ),
-      ),
+        const SizedBox(height: 4),
+        Text(
+          'NPM ${student.displayNpm.isEmpty ? '—' : student.displayNpm}',
+          style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+        ),
+        if (student.prodi.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            student.prodi,
+            style: textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+              height: 1.35,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -197,49 +419,124 @@ class _LogSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final student = provider.selectedStudent;
+    final scheme = Theme.of(context).colorScheme;
+
     return Card(
+      elevation: 0,
+      color: scheme.surface,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Log Bimbingan', style: Theme.of(context).textTheme.titleMedium),
-                const Spacer(),
+                Icon(Icons.history_edu_rounded, color: scheme.primary, size: 24),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Log bimbingan',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      Text(
+                        'Riwayat konsultasi per mahasiswa.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
                 IconButton(
                   onPressed: student == null || provider.isActionLoading
                       ? null
                       : provider.loadLogs,
-                  tooltip: 'Refresh log',
+                  tooltip: 'Muat ulang log',
                   icon: const Icon(Icons.refresh_rounded),
                 ),
               ],
             ),
             if (student == null)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: Text('Pilih mahasiswa untuk melihat log bimbingan.'),
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.touch_app_rounded,
+                      size: 20,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Pilih mahasiswa di atas untuk melihat dan mengelola log.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
               )
             else if (provider.isActionLoading && provider.logs.isEmpty)
               const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
+                padding: EdgeInsets.symmetric(vertical: 20),
                 child: Center(child: CircularProgressIndicator()),
               )
             else if (provider.logs.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: Text('Belum ada log bimbingan untuk mahasiswa ini.'),
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  'Belum ada log untuk mahasiswa ini. Gunakan tombol Tambah Log.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                ),
               )
-            else
-              ...provider.logs.map(
-                (log) => _LogItemTile(
-                  item: log,
-                  isBusy: provider.isSubmitting,
-                  onEdit: () => _openEditLog(context, provider, log),
-                  onDelete: () => _deleteLog(context, provider, log),
+            else ...[
+              Padding(
+                padding: const EdgeInsets.only(top: 6, bottom: 10),
+                child: Wrap(
+                  spacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      'Entri log',
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                    Chip(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      avatar: Icon(
+                        Icons.article_outlined,
+                        size: 18,
+                        color: scheme.primary,
+                      ),
+                      label: Text('${provider.logs.length} catatan'),
+                    ),
+                  ],
                 ),
               ),
+              ...provider.logs.map(
+                (log) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _LogItemTile(
+                    item: log,
+                    isBusy: provider.isSubmitting,
+                    onEdit: () => _openEditLog(context, provider, log),
+                    onDelete: () => _deleteLog(context, provider, log),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -319,79 +616,110 @@ class _LogItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      item.tema.isEmpty ? 'Tanpa Tema' : item.tema,
-                      style: Theme.of(context).textTheme.titleMedium,
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Material(
+      color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 8, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    item.tema.isEmpty ? 'Tanpa tema' : item.tema,
+                    style: textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      height: 1.25,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                    ),
-                    child: Text(
-                      item.tanggalKonsultasi.isEmpty ? '-' : item.tanggalKonsultasi,
-                      style: Theme.of(context).textTheme.labelMedium,
-                    ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    color: scheme.primaryContainer.withValues(alpha: 0.65),
                   ),
-                ],
-              ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.event_rounded,
+                        size: 14,
+                        color: scheme.onPrimaryContainer,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        item.tanggalKonsultasi.isEmpty ? '—' : item.tanggalKonsultasi,
+                        style: textTheme.labelMedium?.copyWith(
+                          color: scheme.onPrimaryContainer,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (item.ringkasan.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
-                item.ringkasan.isEmpty ? '-' : item.ringkasan,
-                style: Theme.of(context).textTheme.bodyMedium,
+                item.ringkasan,
+                style: textTheme.bodyMedium?.copyWith(height: 1.35),
               ),
+            ],
+            if (item.hasil.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(
-                'Hasil: ${item.hasil.isEmpty ? '-' : item.hasil}',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                'Hasil: ${item.hasil}',
+                style: textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  height: 1.35,
+                ),
               ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+            ],
+            Align(
+              alignment: Alignment.centerRight,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Semantics(
                     button: true,
                     label: 'Edit log ${item.tema}',
-                    child: TextButton.icon(
+                    child: IconButton.filledTonal(
                       onPressed: isBusy ? null : onEdit,
-                      icon: const Icon(Icons.edit_outlined),
-                      label: const Text('Edit'),
+                      icon: const Icon(Icons.edit_rounded, size: 20),
+                      tooltip: 'Ubah',
+                      style: IconButton.styleFrom(
+                        minimumSize: const Size(40, 40),
+                        visualDensity: VisualDensity.compact,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 8),
                   Semantics(
                     button: true,
                     label: 'Hapus log ${item.tema}',
-                    child: TextButton.icon(
+                    child: IconButton(
                       onPressed: isBusy ? null : onDelete,
-                      icon: const Icon(Icons.delete_outline_rounded),
-                      label: const Text('Hapus'),
+                      tooltip: 'Hapus',
+                      icon: Icon(Icons.delete_outline_rounded, color: scheme.error),
+                      style: IconButton.styleFrom(
+                        minimumSize: const Size(40, 40),
+                        visualDensity: VisualDensity.compact,
+                      ),
                     ),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -407,8 +735,11 @@ class _LogEditorDialog extends StatefulWidget {
   State<_LogEditorDialog> createState() => _LogEditorDialogState();
 }
 
+enum _LogEditorStep { form, preview }
+
 class _LogEditorDialogState extends State<_LogEditorDialog> {
   final _formKey = GlobalKey<FormState>();
+  _LogEditorStep _step = _LogEditorStep.form;
   late final TextEditingController _tanggalController;
   late final TextEditingController _temaController;
   late final TextEditingController _ringkasanController;
@@ -437,72 +768,230 @@ class _LogEditorDialogState extends State<_LogEditorDialog> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.initial != null;
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final preview = _step == _LogEditorStep.preview;
+
     return AlertDialog(
-      title: Text(isEdit ? 'Ubah Log Bimbingan' : 'Tambah Log Bimbingan'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _dateField(
-                context,
-                validator: (value) {
-                  final text = (value ?? '').trim();
-                  if (text.isEmpty) return 'Tanggal konsultasi wajib diisi';
-                  if (!_isIsoDate(text)) return 'Format tanggal: YYYY-MM-DD';
-                  return null;
-                },
+      icon: Icon(
+        preview
+            ? Icons.fact_check_rounded
+            : (isEdit ? Icons.edit_note_rounded : Icons.post_add_rounded),
+        color: scheme.primary,
+      ),
+      title: Text(
+        preview
+            ? 'Konfirmasi log bimbingan'
+            : (isEdit ? 'Ubah log bimbingan' : 'Tambah log bimbingan'),
+      ),
+      titleTextStyle: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+      contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+      content: preview ? _buildPreviewContent(context) : _buildFormContent(context),
+      actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      actionsAlignment: MainAxisAlignment.end,
+      actions: preview
+          ? [
+              TextButton(
+                onPressed: () => setState(() => _step = _LogEditorStep.form),
+                child: const Text('Ubah'),
               ),
-              const SizedBox(height: 8),
-              _inputField(
-                controller: _temaController,
-                label: 'Tema',
-                hint: 'Tema bimbingan',
-                validator: (value) {
-                  if ((value ?? '').trim().isEmpty) return 'Tema wajib diisi';
-                  return null;
-                },
+              FilledButton.icon(
+                onPressed: _confirmSubmit,
+                icon: const Icon(Icons.check_rounded),
+                label: Text(isEdit ? 'Simpan perubahan' : 'Tambahkan'),
               ),
-              const SizedBox(height: 8),
-              _inputField(
-                controller: _ringkasanController,
-                label: 'Ringkasan',
-                hint: 'Ringkasan konsultasi',
-                minLines: 3,
-                maxLines: 4,
-                validator: (value) {
-                  if ((value ?? '').trim().isEmpty) return 'Ringkasan wajib diisi';
-                  return null;
-                },
+            ]
+          : [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Batal'),
               ),
-              const SizedBox(height: 8),
-              _inputField(
-                controller: _hasilController,
-                label: 'Hasil',
-                hint: 'Hasil / tindak lanjut',
-                minLines: 2,
-                maxLines: 3,
-                validator: (value) {
-                  if ((value ?? '').trim().isEmpty) return 'Hasil wajib diisi';
-                  return null;
-                },
+              FilledButton.icon(
+                onPressed: _goToPreview,
+                icon: const Icon(Icons.preview_rounded),
+                label: const Text('Lanjut'),
               ),
             ],
-          ),
+    );
+  }
+
+  Widget _buildFormContent(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Form(
+      key: _formKey,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                'Lengkapi tanggal dan tema. Ringkasan & hasil membantu melacak konsultasi. '
+                'Anda akan melihat ringkasan sebelum data dikirim.',
+                style: textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  height: 1.35,
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            _dateField(
+              context,
+              validator: (value) {
+                final text = (value ?? '').trim();
+                if (text.isEmpty) return 'Tanggal konsultasi wajib diisi';
+                if (!_isIsoDate(text)) return 'Format tanggal: YYYY-MM-DD';
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            _inputField(
+              controller: _temaController,
+              label: 'Tema',
+              hint: 'Topik konsultasi',
+              validator: (value) {
+                if ((value ?? '').trim().isEmpty) return 'Tema wajib diisi';
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            _inputField(
+              controller: _ringkasanController,
+              label: 'Ringkasan',
+              hint: 'Ringkasan pembahasan',
+              minLines: 3,
+              maxLines: 5,
+              validator: (value) {
+                if ((value ?? '').trim().isEmpty) return 'Ringkasan wajib diisi';
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            _inputField(
+              controller: _hasilController,
+              label: 'Hasil',
+              hint: 'Tindak lanjut / kesimpulan',
+              minLines: 2,
+              maxLines: 4,
+              validator: (value) {
+                if ((value ?? '').trim().isEmpty) return 'Hasil wajib diisi';
+                return null;
+              },
+            ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Batal'),
+    );
+  }
+
+  Widget _buildPreviewContent(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final tanggal = _tanggalController.text.trim();
+    final tema = _temaController.text.trim();
+    final ringkasan = _ringkasanController.text.trim();
+    final hasil = _hasilController.text.trim();
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Periksa kembali data berikut. Anda dapat mengubah melalui tombol Ubah.',
+            style: textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 14),
+          _previewSection(
+            context,
+            icon: Icons.event_rounded,
+            label: 'Tanggal konsultasi',
+            body: tanggal,
+          ),
+          const SizedBox(height: 12),
+          _previewSection(
+            context,
+            icon: Icons.topic_rounded,
+            label: 'Tema',
+            body: tema,
+            emphasizeBody: true,
+          ),
+          const SizedBox(height: 12),
+          _previewSection(
+            context,
+            icon: Icons.notes_rounded,
+            label: 'Ringkasan',
+            body: ringkasan,
+            multiline: true,
+          ),
+          const SizedBox(height: 12),
+          _previewSection(
+            context,
+            icon: Icons.task_alt_rounded,
+            label: 'Hasil',
+            body: hasil,
+            multiline: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _previewSection(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String body,
+    bool multiline = false,
+    bool emphasizeBody = false,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Material(
+      color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 18, color: scheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: textTheme.labelLarge?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              body,
+              style: (emphasizeBody ? textTheme.titleSmall : textTheme.bodyMedium)?.copyWith(
+                fontWeight: emphasizeBody ? FontWeight.w600 : null,
+                height: multiline ? 1.4 : null,
+              ),
+            ),
+          ],
         ),
-        FilledButton.icon(
-          onPressed: _submit,
-          icon: const Icon(Icons.save_rounded),
-          label: const Text('Simpan'),
-        ),
-      ],
+      ),
     );
   }
 
@@ -521,6 +1010,8 @@ class _LogEditorDialogState extends State<_LogEditorDialog> {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
+        border: const OutlineInputBorder(),
+        filled: true,
       ),
       validator: validator,
     );
@@ -530,16 +1021,20 @@ class _LogEditorDialogState extends State<_LogEditorDialog> {
     BuildContext context, {
     required FormFieldValidator<String> validator,
   }) {
+    final scheme = Theme.of(context).colorScheme;
+
     return TextFormField(
       controller: _tanggalController,
       readOnly: true,
       decoration: InputDecoration(
-        labelText: 'Tanggal Konsultasi',
+        labelText: 'Tanggal konsultasi',
         hintText: 'YYYY-MM-DD',
+        border: const OutlineInputBorder(),
+        filled: true,
         suffixIcon: IconButton(
           tooltip: 'Pilih tanggal',
           onPressed: () => _pickDate(context),
-          icon: const Icon(Icons.calendar_month_rounded),
+          icon: Icon(Icons.calendar_month_rounded, color: scheme.primary),
         ),
       ),
       onTap: () => _pickDate(context),
@@ -547,14 +1042,34 @@ class _LogEditorDialogState extends State<_LogEditorDialog> {
     );
   }
 
-  void _submit() {
+  void _goToPreview() {
     if (!_formKey.currentState!.validate()) return;
+    setState(() => _step = _LogEditorStep.preview);
+  }
+
+  void _confirmSubmit() {
+    final tanggal = _tanggalController.text.trim();
+    final tema = _temaController.text.trim();
+    final ringkasan = _ringkasanController.text.trim();
+    final hasil = _hasilController.text.trim();
+    if (tanggal.isEmpty ||
+        !_isIsoDate(tanggal) ||
+        tema.isEmpty ||
+        ringkasan.isEmpty ||
+        hasil.isEmpty) {
+      setState(() => _step = _LogEditorStep.form);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _formKey.currentState?.validate();
+      });
+      return;
+    }
     Navigator.of(context).pop(
       BimbinganLogDraft(
-        tanggalKonsultasi: _tanggalController.text.trim(),
-        tema: _temaController.text.trim(),
-        ringkasan: _ringkasanController.text.trim(),
-        hasil: _hasilController.text.trim(),
+        tanggalKonsultasi: tanggal,
+        tema: tema,
+        ringkasan: ringkasan,
+        hasil: hasil,
       ),
     );
   }
