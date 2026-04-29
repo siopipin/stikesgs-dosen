@@ -36,7 +36,9 @@ class _PresensiScreenState extends State<PresensiScreen> {
             title: const Text('Presensi'),
             actions: [
               IconButton(
-                onPressed: provider.isActionLoading ? null : provider.refreshAll,
+                onPressed: provider.isActionLoading
+                    ? null
+                    : provider.refreshAll,
                 tooltip: 'Refresh data presensi',
                 icon: const Icon(Icons.refresh_rounded),
               ),
@@ -70,6 +72,214 @@ class _PresensiScreenState extends State<PresensiScreen> {
   }
 }
 
+String _semanticsJadwalLabel(TeachingScheduleItem? item) {
+  if (item == null) return 'belum dipilih';
+  final mk = item.namaMk.trim().isEmpty ? 'mata kuliah' : item.namaMk;
+  return '$mk, ${item.namaHari}, jam ${item.jamMulai}–${item.jamSelesai}, '
+      'ruang ${item.ruang}, ${item.sks} SKS';
+}
+
+void _showJadwalPickerSheet(BuildContext context, PresensiProvider provider) {
+  final scheme = Theme.of(context).colorScheme;
+  final textTheme = Theme.of(context).textTheme;
+
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    useSafeArea: true,
+    builder: (sheetContext) {
+      return DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.55,
+        minChildSize: 0.38,
+        maxChildSize: 0.92,
+        builder: (context, scrollController) {
+          return Material(
+            color: scheme.surface,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 12, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Pilih jadwal mengajar',
+                          style: textTheme.titleLarge,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(),
+                        icon: const Icon(Icons.close_rounded),
+                        tooltip: 'Tutup',
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'Semua informasi jadwal ditampilkan lengkap. Ketuk salah satu untuk memilih.',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: ListView.separated(
+                    controller: scrollController,
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    itemCount: provider.schedules.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final item = provider.schedules[index];
+                      final selected =
+                          item.jadwalId == provider.selectedSchedule?.jadwalId;
+                      return _JadwalPickerCard(
+                        item: item,
+                        selected: selected,
+                        enabled: !provider.isActionLoading,
+                        onTap: () async {
+                          await provider.selectSchedule(item);
+                          if (sheetContext.mounted) {
+                            Navigator.of(sheetContext).pop();
+                          }
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+class _JadwalPickerCard extends StatelessWidget {
+  const _JadwalPickerCard({
+    required this.item,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final TeachingScheduleItem item;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Material(
+      color: selected
+          ? scheme.primaryContainer.withValues(alpha: 0.55)
+          : scheme.surfaceContainerHighest.withValues(alpha: 0.65),
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      item.namaMk.trim().isEmpty ? 'Mata kuliah' : item.namaMk,
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        height: 1.25,
+                      ),
+                    ),
+                  ),
+                  if (selected)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Icon(
+                        Icons.check_circle_rounded,
+                        color: scheme.primary,
+                        size: 22,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${item.namaHari} · ${item.jamMulai}–${item.jamSelesai}',
+                style: textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Ruang ${item.ruang} · ${item.sks} SKS',
+                style: textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _JadwalFieldSummary extends StatelessWidget {
+  const _JadwalFieldSummary({required this.item});
+
+  final TeachingScheduleItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          item.namaMk.trim().isEmpty ? 'Mata kuliah' : item.namaMk,
+          style: textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            height: 1.28,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '${item.namaHari} · ${item.jamMulai}–${item.jamSelesai}',
+          style: textTheme.bodyMedium?.copyWith(
+            color: scheme.onSurfaceVariant,
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Ruang ${item.ruang} · ${item.sks} SKS',
+          style: textTheme.bodySmall?.copyWith(
+            color: scheme.onSurfaceVariant,
+            height: 1.35,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _ScheduleSection extends StatelessWidget {
   const _ScheduleSection({required this.provider});
 
@@ -77,13 +287,19 @@ class _ScheduleSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final disabled = provider.isActionLoading;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Pilih Jadwal', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Pilih Jadwal',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 10),
             if (provider.isLoading && provider.schedules.isEmpty)
               const Padding(
@@ -93,33 +309,42 @@ class _ScheduleSection extends StatelessWidget {
             else if (provider.schedules.isEmpty)
               const Text('Belum ada jadwal mengajar.')
             else
-              DropdownButtonFormField<int>(
-                isExpanded: true,
-                value: provider.selectedSchedule?.jadwalId,
-                decoration: const InputDecoration(
-                  labelText: 'Jadwal',
+              Semantics(
+                button: true,
+                label:
+                    'Jadwal terpilih: ${_semanticsJadwalLabel(provider.selectedSchedule)}. Ketuk untuk mengganti.',
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: 'Jadwal',
+                    border: const OutlineInputBorder(),
+                    enabled: !disabled,
+                    suffixIcon: Icon(
+                      Icons.expand_more_rounded,
+                      color: disabled
+                          ? scheme.onSurface.withValues(alpha: 0.38)
+                          : scheme.onSurfaceVariant,
+                    ),
+                    contentPadding: const EdgeInsets.fromLTRB(14, 16, 8, 14),
+                  ),
+                  child: InkWell(
+                    onTap: disabled
+                        ? null
+                        : () => _showJadwalPickerSheet(context, provider),
+                    borderRadius: BorderRadius.circular(4),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: provider.selectedSchedule != null
+                          ? _JadwalFieldSummary(
+                              item: provider.selectedSchedule!,
+                            )
+                          : Text(
+                              'Ketuk untuk memilih jadwal',
+                              style: Theme.of(context).textTheme.bodyLarge
+                                  ?.copyWith(color: scheme.onSurfaceVariant),
+                            ),
+                    ),
+                  ),
                 ),
-                items: provider.schedules
-                    .map(
-                      (item) => DropdownMenuItem<int>(
-                        value: item.jadwalId,
-                        child: Text(
-                          _scheduleLabel(item),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: provider.isActionLoading
-                    ? null
-                    : (value) {
-                        if (value == null) return;
-                        final selected = provider.schedules.firstWhere(
-                          (e) => e.jadwalId == value,
-                        );
-                        provider.selectSchedule(selected);
-                      },
               ),
             const SizedBox(height: 10),
             DropdownButtonFormField<int>(
@@ -131,30 +356,25 @@ class _ScheduleSection extends StatelessWidget {
                     ? 'Memuat status pertemuan…'
                     : null,
               ),
-              items: List<int>.generate(16, (index) => index + 1)
-                  .map(
-                    (value) {
-                      final locked = provider.isPertemuanLocked(value);
-                      final isSelected = value == provider.pertemuan;
-                      final label = locked
-                          ? '$value · selesai'
-                          : value.toString();
-                      return DropdownMenuItem<int>(
-                        value: value,
-                        enabled: !locked || isSelected,
-                        child: Text(
-                          label,
-                          style: TextStyle(
-                            color: locked && !isSelected
-                                ? Colors.grey.shade500
-                                : null,
-                          ),
-                        ),
-                      );
-                    },
-                  )
-                  .toList(),
-              onChanged: provider.isActionLoading || provider.pertemuanLocksLoading
+              items: List<int>.generate(16, (index) => index + 1).map((value) {
+                final locked = provider.isPertemuanLocked(value);
+                final isSelected = value == provider.pertemuan;
+                final label = locked ? '$value · selesai' : value.toString();
+                return DropdownMenuItem<int>(
+                  value: value,
+                  enabled: !locked || isSelected,
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: locked && !isSelected
+                          ? Colors.grey.shade500
+                          : null,
+                    ),
+                  ),
+                );
+              }).toList(),
+              onChanged:
+                  provider.isActionLoading || provider.pertemuanLocksLoading
                   ? null
                   : (value) {
                       if (value != null) {
@@ -166,10 +386,6 @@ class _ScheduleSection extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _scheduleLabel(TeachingScheduleItem item) {
-    return '${item.namaHari} ${item.jamMulai}-${item.jamSelesai} • ${item.namaMk}';
   }
 }
 
@@ -278,7 +494,8 @@ class _PresensiSessionTimerStrip extends StatefulWidget {
       _PresensiSessionTimerStripState();
 }
 
-class _PresensiSessionTimerStripState extends State<_PresensiSessionTimerStrip> {
+class _PresensiSessionTimerStripState
+    extends State<_PresensiSessionTimerStrip> {
   Timer? _timer;
 
   @override
@@ -323,9 +540,7 @@ class _PresensiSessionTimerStripState extends State<_PresensiSessionTimerStrip> 
         ),
         const SizedBox(height: 4),
         Text(
-          end == null
-              ? '—'
-              : _formatCountdown(remaining ?? Duration.zero),
+          end == null ? '—' : _formatCountdown(remaining ?? Duration.zero),
           style: textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
@@ -438,7 +653,8 @@ class _PresensiActiveSessionBody extends StatefulWidget {
       _PresensiActiveSessionBodyState();
 }
 
-class _PresensiActiveSessionBodyState extends State<_PresensiActiveSessionBody> {
+class _PresensiActiveSessionBodyState
+    extends State<_PresensiActiveSessionBody> {
   Timer? _timer;
 
   @override
@@ -556,9 +772,7 @@ class _PresensiActiveSessionBodyState extends State<_PresensiActiveSessionBody> 
           end != null
               ? 'Sesi ditutup otomatis pada ${_formatTimeHm(end)} (sesuai aturan server).'
               : 'Sesi dihentikan otomatis setelah ±20 menit dari waktu mulai.',
-          style: textTheme.bodySmall?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
+          style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
         ),
         const SizedBox(height: 14),
         Semantics(
@@ -639,7 +853,8 @@ class _SessionSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final open = provider.openSession;
     final canStart = provider.canStartSession;
-    final canEnd = open != null &&
+    final canEnd =
+        open != null &&
         open.status.toUpperCase() == 'OPEN' &&
         !provider.isActionLoading;
 
@@ -649,7 +864,10 @@ class _SessionSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Sesi Presensi', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Sesi Presensi',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
             _MeetingStateBanner(provider: provider),
             const SizedBox(height: 8),
@@ -697,7 +915,7 @@ class _SessionSection extends StatelessWidget {
                               ok
                                   ? 'Sesi presensi berhasil dimulai.'
                                   : (provider.errorMessage ??
-                                      'Gagal memulai sesi presensi.'),
+                                        'Gagal memulai sesi presensi.'),
                             );
                           }
                         : null,
@@ -716,7 +934,7 @@ class _SessionSection extends StatelessWidget {
                               ok
                                   ? 'Sesi presensi ditutup.'
                                   : (provider.errorMessage ??
-                                      'Gagal menutup sesi presensi.'),
+                                        'Gagal menutup sesi presensi.'),
                             );
                           }
                         : null,
@@ -732,9 +950,9 @@ class _SessionSection extends StatelessWidget {
   }
 
   void _showSnack(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -767,8 +985,8 @@ class _AttendanceSection extends StatelessWidget {
                     child: Text(
                       '${provider.totalMahasiswa} mhs',
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 IconButton(
@@ -797,39 +1015,43 @@ class _AttendanceSection extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               )
-            else
-              ...[
-                if (!hasPresensiRow)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4, bottom: 8),
-                    child: Text(
-                      'Daftar mahasiswa pertemuan ini diambil dari endpoint aktif.',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                    ),
-                  ),
-              ],
-              ...provider.attendance.map(
-                (item) => _AttendanceTile(
-                  item: item,
-                  enabled: provider.canEditAttendance && !provider.isActionLoading,
-                  onChanged: (value) async {
-                    final ok = await provider.updateAttendance(
-                      item: item,
-                      statusCode: value,
-                    );
-                    if (!context.mounted || ok) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          provider.errorMessage ?? 'Gagal memperbarui kehadiran.',
+            else ...[
+              if (!hasPresensiRow)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 8),
+                  child: Text(
+                    'Daftar mahasiswa pertemuan ini diambil dari endpoint aktif.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
-                      ),
-                    );
-                  },
+                  ),
+                ),
+              ...provider.attendance.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _AttendanceTile(
+                    item: item,
+                    enabled: provider.canEditAttendance &&
+                        !provider.isActionLoading,
+                    onChanged: (value) async {
+                      final ok = await provider.updateAttendance(
+                        item: item,
+                        statusCode: value,
+                      );
+                      if (!context.mounted || ok) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            provider.errorMessage ??
+                                'Gagal memperbarui kehadiran.',
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
+            ],
           ],
         ),
       ),
@@ -848,25 +1070,114 @@ class _AttendanceTile extends StatelessWidget {
   final bool enabled;
   final ValueChanged<String> onChanged;
 
+  static const List<String> _codes = <String>['H', 'M', 'I', 'S'];
+
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final current = item.statusCode.toUpperCase();
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-      title: Text(item.studentName),
-      subtitle: Text(item.studentId.isEmpty ? '-' : item.studentId),
-      trailing: Wrap(
-        spacing: 6,
-        children: ['H', 'M', 'I', 'S']
-            .map(
-              (status) => _AttendanceStatusButton(
-                status: status,
-                current: current,
-                enabled: enabled,
-                onPressed: () => onChanged(status),
-              ),
-            )
-            .toList(),
+    final npm = item.studentId.trim().isEmpty ? '—' : item.studentId.trim();
+
+    return Material(
+      color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+      borderRadius: BorderRadius.circular(10),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.studentName,
+                        style: textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'NPM $npm',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _AttendanceStatusPill(code: current),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                for (var i = 0; i < _codes.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 6),
+                  Expanded(
+                    child: _AttendanceStatusButton(
+                      status: _codes[i],
+                      current: current,
+                      enabled: enabled,
+                      tooltip: _AttendanceStatusButton.tooltipFor(_codes[i]),
+                      onPressed: () => onChanged(_codes[i]),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Badge ringkas status aktual (kolom kanan baris identitas).
+class _AttendanceStatusPill extends StatelessWidget {
+  const _AttendanceStatusPill({required this.code});
+
+  final String code;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final c = _AttendanceStatusButton.colorForStatus(code, scheme);
+    final label = _AttendanceStatusButton.longLabelFor(code);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            code.toUpperCase(),
+            style: textTheme.labelLarge?.copyWith(
+              color: c,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: textTheme.labelSmall?.copyWith(
+              color: c,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -877,51 +1188,87 @@ class _AttendanceStatusButton extends StatelessWidget {
     required this.status,
     this.current = '',
     this.enabled = true,
+    this.tooltip,
     this.onPressed,
   });
 
   final String status;
   final String current;
   final bool enabled;
+  final String? tooltip;
   final VoidCallback? onPressed;
+
+  static String tooltipFor(String code) {
+    switch (code.toUpperCase()) {
+      case 'H':
+        return 'Hadir';
+      case 'M':
+        return 'Mangkir';
+      case 'I':
+        return 'Izin';
+      case 'S':
+        return 'Sakit';
+      default:
+        return code;
+    }
+  }
+
+  static String longLabelFor(String code) {
+    return tooltipFor(code);
+  }
+
+  static Color colorForStatus(String value, ColorScheme scheme) {
+    switch (value.toUpperCase()) {
+      case 'H':
+        return const Color(0xFF2E7D32);
+      case 'M':
+        return scheme.error;
+      case 'I':
+        return const Color(0xFF1565C0);
+      case 'S':
+        return const Color(0xFFE65100);
+      default:
+        return scheme.primary;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final selected = current == status;
+    final selected = current.toUpperCase() == status.toUpperCase();
     final scheme = Theme.of(context).colorScheme;
-    final Color borderColor = _colorForStatus(status, scheme);
+    final borderColor = colorForStatus(status, scheme);
 
-    return OutlinedButton(
+    final button = OutlinedButton(
       onPressed: enabled ? onPressed : null,
       style: OutlinedButton.styleFrom(
-        minimumSize: const Size(40, 34),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        side: BorderSide(color: selected ? borderColor : scheme.outlineVariant),
-        backgroundColor: selected ? borderColor.withValues(alpha: 0.14) : null,
+        minimumSize: const Size(0, 40),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+        side: BorderSide(
+          color: selected ? borderColor : scheme.outlineVariant,
+          width: selected ? 1.5 : 1,
+        ),
+        backgroundColor:
+            selected ? borderColor.withValues(alpha: 0.12) : Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       child: Text(
         status,
         style: TextStyle(
-          fontWeight: FontWeight.w700,
-          color: selected ? borderColor : scheme.onSurface,
+          fontWeight: FontWeight.w800,
+          fontSize: 14,
+          color: selected ? borderColor : scheme.onSurfaceVariant,
         ),
       ),
     );
-  }
 
-  Color _colorForStatus(String value, ColorScheme scheme) {
-    switch (value) {
-      case 'H':
-        return Colors.green;
-      case 'M':
-        return scheme.error;
-      case 'I':
-        return Colors.blue;
-      case 'S':
-        return Colors.orange;
-      default:
-        return scheme.primary;
-    }
+    if (tooltip == null || tooltip!.isEmpty) return SizedBox(width: double.infinity, child: button);
+
+    return Tooltip(
+      message: tooltip!,
+      child: SizedBox(width: double.infinity, child: button),
+    );
   }
 }
 
@@ -950,10 +1297,7 @@ class _StatusChip extends StatelessWidget {
       label: Text(normalized),
       backgroundColor: color.withValues(alpha: 0.15),
       side: BorderSide(color: color),
-      labelStyle: TextStyle(
-        color: color,
-        fontWeight: FontWeight.w700,
-      ),
+      labelStyle: TextStyle(color: color, fontWeight: FontWeight.w700),
     );
   }
 }
@@ -966,8 +1310,7 @@ class _MeetingStateBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final open = provider.openSession;
-    final isLive =
-        open != null && open.status.toUpperCase() == 'OPEN';
+    final isLive = open != null && open.status.toUpperCase() == 'OPEN';
     final done = provider.isPresensiSudahDilakukan;
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -980,8 +1323,7 @@ class _MeetingStateBanner extends StatelessWidget {
     if (isLive) {
       color = scheme.primary;
       icon = Icons.qr_code_2_rounded;
-      title =
-          'Pertemuan ${provider.pertemuan}: Presensi sedang berlangsung';
+      title = 'Pertemuan ${provider.pertemuan}: Presensi sedang berlangsung';
       subtitle =
           'Sesi aktif — mahasiswa dapat memindai kode QR hingga waktu habis atau sesi ditutup.';
     } else if (done) {
@@ -1003,11 +1345,7 @@ class _MeetingStateBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            color: color,
-            size: 18,
-          ),
+          Icon(icon, color: color, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
