@@ -23,6 +23,8 @@ class PresensiProvider extends ChangeNotifier {
   bool _isPresensiSudahDilakukan = false;
   int _totalMahasiswa = 0;
   int _pertemuan = 1;
+  Set<int> _pertemuanSudahPresensi = <int>{};
+  bool _pertemuanLocksLoading = false;
 
   bool get isLoading => _isLoading;
   bool get isActionLoading => _isActionLoading;
@@ -40,6 +42,10 @@ class PresensiProvider extends ChangeNotifier {
   bool get isPresensiSudahDilakukan => _isPresensiSudahDilakukan;
   int get totalMahasiswa => _totalMahasiswa;
   int get pertemuan => _pertemuan;
+  bool get pertemuanLocksLoading => _pertemuanLocksLoading;
+  /// True jika presensi pertemuan [p] sudah pernah dilakukan (bukan pilihan baru).
+  bool isPertemuanLocked(int p) => _pertemuanSudahPresensi.contains(p);
+
   bool get canEditAttendance => _meetingSession?.canEditAttendance ?? false;
   bool get canStartSession =>
       _openSession == null &&
@@ -61,7 +67,10 @@ class PresensiProvider extends ChangeNotifier {
     try {
       _schedules = await _service.getTeachingSchedule();
       _selectedSchedule ??= _schedules.isNotEmpty ? _schedules.first : null;
-      await _syncPresensiContext(showBlockingSpinner: true);
+      await Future.wait<void>([
+        _syncPresensiContext(showBlockingSpinner: true),
+        _refreshPertemuanSudahPresensi(),
+      ]);
       await _loadAttendanceIfPossible();
     } on ApiException catch (error) {
       _errorMessage = error.message;
@@ -80,8 +89,12 @@ class PresensiProvider extends ChangeNotifier {
     _attendance = <PresensiAttendanceItem>[];
     _isPresensiSudahDilakukan = false;
     _totalMahasiswa = 0;
+    _pertemuanSudahPresensi = <int>{};
     notifyListeners();
-    await _syncPresensiContext(showBlockingSpinner: true);
+    await Future.wait<void>([
+      _syncPresensiContext(showBlockingSpinner: true),
+      _refreshPertemuanSudahPresensi(),
+    ]);
     await _loadAttendanceIfPossible();
   }
 
@@ -106,6 +119,7 @@ class PresensiProvider extends ChangeNotifier {
       _isPresensiSudahDilakukan = false;
       _totalMahasiswa = 0;
       _attendance = <PresensiAttendanceItem>[];
+      _pertemuanSudahPresensi = <int>{};
       notifyListeners();
       return;
     }
@@ -126,6 +140,12 @@ class PresensiProvider extends ChangeNotifier {
       _isPresensiSudahDilakukan = ctx.isPresensiSudahDilakukan;
       _totalMahasiswa = ctx.totalMahasiswa;
       _attendance = ctx.meetingStudents;
+      if (ctx.isPresensiSudahDilakukan) {
+        _pertemuanSudahPresensi = {..._pertemuanSudahPresensi, _pertemuan};
+      } else {
+        _pertemuanSudahPresensi =
+            Set<int>.from(_pertemuanSudahPresensi)..remove(_pertemuan);
+      }
     } on ApiException catch (error) {
       _errorMessage = error.message;
     } catch (_) {
@@ -134,6 +154,26 @@ class PresensiProvider extends ChangeNotifier {
       if (showBlockingSpinner) {
         _isActionLoading = false;
       }
+      notifyListeners();
+    }
+  }
+
+  Future<void> _refreshPertemuanSudahPresensi() async {
+    final schedule = _selectedSchedule;
+    if (schedule == null) {
+      _pertemuanSudahPresensi = <int>{};
+      notifyListeners();
+      return;
+    }
+    _pertemuanLocksLoading = true;
+    notifyListeners();
+    try {
+      _pertemuanSudahPresensi =
+          await _service.fetchPertemuanSudahPresensi(jadwalId: schedule.jadwalId);
+    } catch (_) {
+      // Pertahankan set dari merge [fetchAktifContext] per pertemuan.
+    } finally {
+      _pertemuanLocksLoading = false;
       notifyListeners();
     }
   }
@@ -256,6 +296,8 @@ class PresensiProvider extends ChangeNotifier {
       if (_meetingSession?.presensiId == current.presensiId) {
         _meetingSession = closed;
       }
+      await _syncPresensiContext(showBlockingSpinner: false);
+      await _loadAttendanceIfPossible();
       return true;
     } on ApiException catch (error) {
       _errorMessage = error.message;
@@ -332,6 +374,7 @@ extension on PresensiSession {
       qrSessionToken: qrSessionToken,
       status: status,
       startedAt: startedAt,
+      expiredAt: expiredAt,
       raw: raw,
       pertemuanKe: pertemuanKe,
     );

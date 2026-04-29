@@ -8,6 +8,7 @@ class PresensiSession {
     required this.qrSessionToken,
     required this.status,
     required this.startedAt,
+    this.expiredAt,
     required this.raw,
     this.pertemuanKe,
   });
@@ -18,6 +19,8 @@ class PresensiSession {
   final String qrSessionToken;
   final String status;
   final DateTime? startedAt;
+  /// Dari backend (`expired_at`); dipakai countdown sesi QR.
+  final DateTime? expiredAt;
   final Map<String, dynamic> raw;
   /// Nomor pertemuan dari backend (jika ada).
   final int? pertemuanKe;
@@ -41,6 +44,9 @@ class PresensiSession {
       status: (data['status'] ?? '').toString(),
       startedAt: _toDateTime(
         data['started_at'] ?? data['created_at'] ?? data['waktu_mulai'],
+      ),
+      expiredAt: _toDateTime(
+        data['expired_at'] ?? data['expiredAt'] ?? data['waktu_selesai'],
       ),
       pertemuanKe: _optionalPertemuan(
         data['pertemuan'] ?? data['Pertemuan'] ?? data['no_pertemuan'],

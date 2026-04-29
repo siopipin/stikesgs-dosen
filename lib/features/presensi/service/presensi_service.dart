@@ -32,6 +32,20 @@ class PresensiService {
     return _parseAktifEnvelope(data, selectedPertemuan: pertemuan);
   }
 
+  /// Memanggil [fetchAktifContext] per pertemuan 1–16 untuk mengetahui mana yang
+  /// `is_presensi_sudah_dilakukan` (tanpa endpoint agregat di backend).
+  Future<Set<int>> fetchPertemuanSudahPresensi({required int jadwalId}) async {
+    final flags = await Future.wait(
+      List.generate(16, (i) {
+        final p = i + 1;
+        return fetchAktifContext(jadwalId: jadwalId, pertemuan: p)
+            .then((ctx) => ctx.isPresensiSudahDilakukan ? p : 0)
+            .onError((_, __) => 0);
+      }),
+    );
+    return flags.where((x) => x > 0).toSet();
+  }
+
   Future<PresensiSession> startSession({
     required int jadwalId,
     required int pertemuan,
