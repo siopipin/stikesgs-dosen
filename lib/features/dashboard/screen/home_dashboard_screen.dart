@@ -489,7 +489,7 @@ class _QuickStatGrid extends StatelessWidget {
         targetTabIndex: 2,
       ),
       _StatCardData(
-        title: 'Mahasiswa\nPA',
+        title: 'Mhs\nPA',
         semanticLabel: 'daftar mahasiswa pa',
         value: '$jumlahPa',
         color: const Color(0xFF2A67C7),
@@ -558,7 +558,7 @@ class _StatCard extends StatelessWidget {
                 item.value,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 39,
+                  fontSize: 34,
                   fontWeight: FontWeight.w700,
                   height: 1,
                 ),
@@ -571,7 +571,7 @@ class _StatCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.w600,
                     height: 1.1,
                   ),
@@ -620,91 +620,128 @@ class _AnnouncementPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      clipBehavior: Clip.antiAlias,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       color: scheme.surface,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+        padding: const EdgeInsets.fromLTRB(10, 8, 6, 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.campaign_rounded,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                Icon(Icons.campaign_rounded, color: scheme.primary, size: 20),
                 const SizedBox(width: 8),
-                Text(
-                  'Pengumuman Kampus',
-                  style: Theme.of(context).textTheme.titleMedium,
+                Expanded(
+                  child: Text(
+                    'Pengumuman kampus',
+                    style: textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-                const Spacer(),
-                Text(
-                  '${items.length} item',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                if (items.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: Text(
+                      '${items.length}',
+                      style: textTheme.labelMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                Semantics(
+                  button: true,
+                  label: 'Lihat semua notifikasi',
+                  child: TextButton(
+                    onPressed: onViewAll,
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Semua',
+                          style: textTheme.labelLarge?.copyWith(
+                            color: scheme.primary,
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          size: 18,
+                          color: scheme.primary,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
             if (items.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.fromLTRB(2, 6, 2, 2),
                 child: Text(
-                  'Belum ada pengumuman terbaru.',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  'Belum ada pengumuman.',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               )
-            else
-              ...items.map((item) {
+            else ...[
+              const SizedBox(height: 6),
+              ...items.asMap().entries.map((entry) {
+                final index = entry.key;
+                final item = entry.value;
                 final text = item.title.toString();
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 11,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.45),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        item.isRead
-                            ? Icons.drafts_rounded
-                            : Icons.markunread_rounded,
-                        size: 18,
-                        color: item.isRead
-                            ? Theme.of(context).colorScheme.onSurfaceVariant
-                            : Theme.of(context).colorScheme.primary,
+                final isLast = index == items.length - 1;
+                return Padding(
+                  padding: EdgeInsets.only(bottom: isLast ? 0 : 6),
+                  child: Material(
+                    color: scheme.surfaceContainerHighest.withValues(alpha: 0.42),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            item.isRead
+                                ? Icons.drafts_rounded
+                                : Icons.markunread_rounded,
+                            size: 16,
+                            color: item.isRead
+                                ? scheme.onSurfaceVariant
+                                : scheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              text,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: textTheme.bodySmall?.copyWith(
+                                height: 1.3,
+                                color: scheme.onSurface,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          text,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 );
               }),
-            const SizedBox(height: 4),
-            Semantics(
-              button: true,
-              label: 'Lihat semua notifikasi',
-              child: OutlinedButton(
-                onPressed: onViewAll,
-                child: const Text('Lihat Semua'),
-              ),
-            ),
+            ],
           ],
         ),
       ),
