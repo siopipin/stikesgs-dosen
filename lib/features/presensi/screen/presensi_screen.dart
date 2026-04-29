@@ -965,12 +965,34 @@ class _MeetingStateBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final open = provider.openSession;
+    final isLive =
+        open != null && open.status.toUpperCase() == 'OPEN';
     final done = provider.isPresensiSudahDilakukan;
     final scheme = Theme.of(context).colorScheme;
-    final Color color = done ? scheme.error : Colors.green;
-    final text = done
-        ? 'Pertemuan ${provider.pertemuan}: Presensi sudah dilakukan'
-        : 'Pertemuan ${provider.pertemuan}: Presensi belum dilakukan';
+    final textTheme = Theme.of(context).textTheme;
+
+    late final Color color;
+    late final IconData icon;
+    late final String title;
+    String? subtitle;
+
+    if (isLive) {
+      color = scheme.primary;
+      icon = Icons.qr_code_2_rounded;
+      title =
+          'Pertemuan ${provider.pertemuan}: Presensi sedang berlangsung';
+      subtitle =
+          'Sesi aktif — mahasiswa dapat memindai kode QR hingga waktu habis atau sesi ditutup.';
+    } else if (done) {
+      color = scheme.error;
+      icon = Icons.event_busy_rounded;
+      title = 'Pertemuan ${provider.pertemuan}: Presensi sudah dilakukan';
+    } else {
+      color = Colors.green;
+      icon = Icons.event_available_rounded;
+      title = 'Pertemuan ${provider.pertemuan}: Presensi belum dilakukan';
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -979,20 +1001,38 @@ class _MeetingStateBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            done ? Icons.event_busy_rounded : Icons.event_available_rounded,
+            icon,
             color: color,
             size: 18,
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              text,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: textTheme.bodySmall?.copyWith(
                     color: color,
                     fontWeight: FontWeight.w600,
                   ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w400,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
