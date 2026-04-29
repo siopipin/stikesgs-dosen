@@ -33,9 +33,12 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // Produksi: ganti dengan signingConfigs.release + keystore Play / internal.
+            // Saat ini debug signing — tidak untuk upload Play Store.
             signingConfig = signingConfigs.getByName("debug")
+            // Opsional setelah keystore siap:
+            // isMinifyEnabled = true
+            // proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }

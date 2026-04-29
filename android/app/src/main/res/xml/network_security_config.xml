@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cleartext hanya untuk host tertentu (bukan global). HTTPS tetap default. -->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- PDF / legacy URL di AppConfig (http) -->
+        <domain includeSubdomains="false">103.167.34.22</domain>
+        <!-- Pengembangan lokal (IS_DEVELOPMENT + API dev) -->
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>
