@@ -56,14 +56,16 @@ class PresensiAttendanceItem {
   }
 
   PresensiAttendanceItem copyWith({
+    String? id,
     String? statusCode,
+    Map<String, dynamic>? raw,
   }) {
     return PresensiAttendanceItem(
-      id: id,
+      id: id ?? this.id,
       studentId: studentId,
       studentName: studentName,
       statusCode: statusCode ?? this.statusCode,
-      raw: raw,
+      raw: raw ?? this.raw,
     );
   }
 

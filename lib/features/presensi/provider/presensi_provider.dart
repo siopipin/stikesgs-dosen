@@ -138,12 +138,68 @@ class PresensiProvider extends ChangeNotifier {
     }
   }
 
+  /// `presensi/aktif` mengembalikan roster lengkap per pertemuan; `presensi/{id}/kehadiran`
+  /// seringkali hanya baris yang sudah tercatat. Jangan mengganti roster dengan daftar parsial.
   Future<void> _loadAttendanceIfPossible() async {
     final id = _meetingSession?.presensiId;
     if (id == null || id == 0) {
       return;
     }
+    if (_attendance.isNotEmpty) {
+      await _mergeKehadiranFromServer(presensiId: id);
+      return;
+    }
     await loadAttendance();
+  }
+
+  /// Sinkron ulang dari `aktif`, lalu overlay detail dari endpoint kehadiran bila ada.
+  Future<void> refreshAttendance() async {
+    await _syncPresensiContext(showBlockingSpinner: false);
+    await _loadAttendanceIfPossible();
+  }
+
+  Future<void> _mergeKehadiranFromServer({required int presensiId}) async {
+    try {
+      final rows = await _service.getAttendance(presensiId: presensiId);
+      if (rows.isEmpty) return;
+
+      final byStudent = <String, PresensiAttendanceItem>{};
+      for (final r in rows) {
+        final key = r.studentId.trim();
+        if (key.isNotEmpty) {
+          byStudent[key] = r;
+        }
+      }
+
+      final merged = _attendance.map((item) {
+        final key = item.studentId.trim();
+        final k = key.isEmpty ? null : byStudent[key];
+        if (k == null) return item;
+        return item.copyWith(
+          id: k.id.isNotEmpty ? k.id : item.id,
+          statusCode: k.statusCode,
+          raw: k.raw,
+        );
+      }).toList();
+
+      final existingIds = merged.map((e) => e.studentId.trim()).toSet();
+      for (final r in rows) {
+        final sid = r.studentId.trim();
+        if (sid.isNotEmpty && !existingIds.contains(sid)) {
+          merged.add(r);
+          existingIds.add(sid);
+        }
+      }
+
+      _attendance = merged;
+      notifyListeners();
+    } on ApiException catch (error) {
+      _errorMessage = error.message;
+      notifyListeners();
+    } catch (_) {
+      _errorMessage = 'Gagal memuat data kehadiran.';
+      notifyListeners();
+    }
   }
 
   Future<bool> startSession() async {
@@ -237,7 +293,7 @@ class PresensiProvider extends ChangeNotifier {
     if (currentSession == null || !currentSession.canEditAttendance) return false;
 
     final index = _attendance.indexWhere(
-      (element) => element.id == item.id && element.studentId == item.studentId,
+      (element) => element.studentId == item.studentId,
     );
     if (index == -1) return false;
 

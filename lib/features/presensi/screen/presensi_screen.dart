@@ -118,41 +118,27 @@ class _ScheduleSection extends StatelessWidget {
                       },
               ),
             const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    isExpanded: true,
-                    value: provider.pertemuan,
-                    decoration: const InputDecoration(
-                      labelText: 'Pertemuan',
+            DropdownButtonFormField<int>(
+              isExpanded: true,
+              value: provider.pertemuan,
+              decoration: const InputDecoration(
+                labelText: 'Pertemuan',
+              ),
+              items: List<int>.generate(16, (index) => index + 1)
+                  .map(
+                    (value) => DropdownMenuItem<int>(
+                      value: value,
+                      child: Text(value.toString()),
                     ),
-                    items: List<int>.generate(16, (index) => index + 1)
-                        .map(
-                          (value) => DropdownMenuItem<int>(
-                            value: value,
-                            child: Text(value.toString()),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: provider.isActionLoading
-                        ? null
-                        : (value) {
-                            if (value != null) {
-                              provider.setPertemuan(value);
-                            }
-                          },
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: provider.isActionLoading ? null : provider.checkActiveSession,
-                    icon: const Icon(Icons.search_rounded),
-                    label: const Text('Cek Sesi'),
-                  ),
-                ),
-              ],
+                  )
+                  .toList(),
+              onChanged: provider.isActionLoading
+                  ? null
+                  : (value) {
+                      if (value != null) {
+                        provider.setPertemuan(value);
+                      }
+                    },
             ),
           ],
         ),
@@ -428,9 +414,9 @@ class _AttendanceSection extends StatelessWidget {
                 IconButton(
                   onPressed: provider.isActionLoading || !hasPresensiRow
                       ? null
-                      : provider.loadAttendance,
+                      : provider.refreshAttendance,
                   icon: const Icon(Icons.refresh_rounded),
-                  tooltip: 'Refresh kehadiran',
+                  tooltip: 'Refresh daftar dan status kehadiran',
                 ),
               ],
             ),
@@ -439,7 +425,7 @@ class _AttendanceSection extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   'Belum ada data presensi untuk jadwal dan pertemuan ini. '
-                  'Jika sudah pernah presensi, coba tombol Refresh di atas atau "Cek Sesi" untuk sinkron ulang.',
+                  'Jika sudah pernah presensi, coba tombol Refresh di atas untuk sinkron ulang.',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               )
