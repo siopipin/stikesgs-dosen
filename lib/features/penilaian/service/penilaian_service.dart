@@ -73,10 +73,11 @@ class PenilaianService {
   Future<void> updateNilai({
     required NilaiDraft draft,
     required int krsId,
+    required PenilaianStudentItem existing,
   }) async {
     await _apiClient.put(
       'nilai/update',
-      body: draft.toBody(krsId),
+      body: draft.toBody(krsId, existing),
     );
   }
 }

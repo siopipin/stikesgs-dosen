@@ -159,14 +159,15 @@ class PenilaianProvider extends ChangeNotifier {
     _errorMessage = null;
 
     final oldValue = _students[index];
+    final merged = draft.resolvedAgainst(oldValue);
     _students[index] = oldValue.copyWith(
-      tugas1: draft.tugas1,
-      tugas2: draft.tugas2,
-      tugas3: draft.tugas3,
-      tugas4: draft.tugas4,
-      tugas5: draft.tugas5,
-      uts: draft.uts,
-      uas: draft.uas,
+      tugas1: merged.tugas1,
+      tugas2: merged.tugas2,
+      tugas3: merged.tugas3,
+      tugas4: merged.tugas4,
+      tugas5: merged.tugas5,
+      uts: merged.uts,
+      uas: merged.uas,
     );
     notifyListeners();
 
@@ -174,6 +175,7 @@ class PenilaianProvider extends ChangeNotifier {
       await _service.updateNilai(
         draft: draft,
         krsId: student.krsId,
+        existing: student,
       );
       return true;
     } on ApiException catch (error) {

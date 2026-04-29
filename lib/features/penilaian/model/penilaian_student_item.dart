@@ -101,35 +101,50 @@ class PenilaianStudentItem {
   }
 }
 
+/// Input dari form: kolom kosong = tidak mengubah nilai yang sudah ada di server.
 class NilaiDraft {
   const NilaiDraft({
-    required this.tugas1,
-    required this.tugas2,
-    required this.tugas3,
-    required this.tugas4,
-    required this.tugas5,
-    required this.uts,
-    required this.uas,
+    this.tugas1,
+    this.tugas2,
+    this.tugas3,
+    this.tugas4,
+    this.tugas5,
+    this.uts,
+    this.uas,
   });
 
-  final int tugas1;
-  final int tugas2;
-  final int tugas3;
-  final int tugas4;
-  final int tugas5;
-  final int uts;
-  final int uas;
+  final int? tugas1;
+  final int? tugas2;
+  final int? tugas3;
+  final int? tugas4;
+  final int? tugas5;
+  final int? uts;
+  final int? uas;
 
-  Map<String, dynamic> toBody(int krsId) {
+  /// Gabungkan dengan nilai yang sudah ada (kolom form kosong memakai [existing]).
+  NilaiDraft resolvedAgainst(PenilaianStudentItem existing) {
+    return NilaiDraft(
+      tugas1: tugas1 ?? existing.tugas1,
+      tugas2: tugas2 ?? existing.tugas2,
+      tugas3: tugas3 ?? existing.tugas3,
+      tugas4: tugas4 ?? existing.tugas4,
+      tugas5: tugas5 ?? existing.tugas5,
+      uts: uts ?? existing.uts,
+      uas: uas ?? existing.uas,
+    );
+  }
+
+  Map<String, dynamic> toBody(int krsId, PenilaianStudentItem existing) {
+    final r = resolvedAgainst(existing);
     return <String, dynamic>{
       'krs_id': krsId,
-      'tugas1': tugas1,
-      'tugas2': tugas2,
-      'tugas3': tugas3,
-      'tugas4': tugas4,
-      'tugas5': tugas5,
-      'uts': uts,
-      'uas': uas,
+      'tugas1': r.tugas1 ?? 0,
+      'tugas2': r.tugas2 ?? 0,
+      'tugas3': r.tugas3 ?? 0,
+      'tugas4': r.tugas4 ?? 0,
+      'tugas5': r.tugas5 ?? 0,
+      'uts': r.uts ?? 0,
+      'uas': r.uas ?? 0,
     };
   }
 }
